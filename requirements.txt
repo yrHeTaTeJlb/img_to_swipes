@@ -1,0 +1,5 @@
+androidviewclient==24.1.0
+CairoSVG==2.7.1
+culebratester_client==2.0.73
+Pillow==11.1.0
+tqdm==4.67.1
