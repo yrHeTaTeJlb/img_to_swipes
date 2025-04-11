@@ -11,13 +11,16 @@ from culebratester_client.models import Point
 from PIL import Image
 from tqdm import tqdm
 
+IMG = Path("img/fry.svg")
 START_X = 130
 START_Y = 850
 SCALE = 5
-DRAW_SWIPE_SIZE = 100
+
 DRAW_FRAME = False
 DUMP_BMP = True
 FRAME_SEGMENT_STEPS = 70
+DRAW_SWIPE_SIZE = 100
+
 LOGGER = logging.getLogger(__name__)
 LOGGER.addHandler(logging.StreamHandler(sys.stdout))
 LOGGER.setLevel(logging.INFO)
@@ -114,7 +117,7 @@ def swipe(view_client: ViewClient, pixels: Iterator[tuple[int, int]], segment_st
 
 def main() -> None:
     workdir = Path(__file__).parent
-    svg_path = workdir / "img_to_swipes.svg"
+    svg_path = workdir / IMG
     black_pixels = set(load_black_pixels(svg_path, SCALE))
     LOGGER.info(f"Loaded {len(black_pixels)} black pixels from {svg_path}")
 
