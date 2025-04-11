@@ -1,6 +1,11 @@
 # Android Swipe Drawing Tool
 
-This tool converts SVG images into touch swipes on Android devices. Perfect for customizing apps that don't support image uploads (like Revolut).
+This tool converts SVG images into touch swipes on Android devices. Perfect for customizing
+
+## Performance Considerations
+
+The script execution becomes progressively slower, particularly near completion, as pixels may be drawn multiple times. Drawing all pixels without repetition is hard. [NP-hard](https://en.wikipedia.org/wiki/Longest_path_problem), to be precise
+
 
 ## Prerequisites
 
