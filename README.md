@@ -22,8 +22,11 @@ The script execution becomes progressively slower, particularly near completion,
    ```
 
 2. **Enable USB debugging on your Android device**
-   - Go to Settings → About Phone → Tap "Build Number" 7 times
-   - Return to Settings → System → Developer Options → Enable "USB Debugging"
+   - Settings → About Phone → Tap "Build Number" 7 times
+   - Settings → System → Developer Options → Enable "USB Debugging"
+   - Settings → System → Developer Options → Enable "USB debugging (Security setting)"
+   - Settings → System → Developer Options → Disable "Permission Monitoring"
+   - Restart
 
 3. **Install ADB**
    - [Download](https://developer.android.com/studio/releases/platform-tools) and install Android platform tools
