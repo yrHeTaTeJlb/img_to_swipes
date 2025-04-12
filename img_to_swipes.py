@@ -34,8 +34,8 @@ def load_black_pixels(svg_path: Path) -> Iterator[tuple[int, int]]:
         for x in range(img.width):
             pixel = img.getpixel((x, y))
             assert isinstance(pixel, tuple)
-            alpha = pixel[1]
-            if alpha > 0:
+            luminosity, alpha = pixel
+            if alpha > 0 and luminosity < 255:
                 yield (x, y)
 
 
