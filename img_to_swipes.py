@@ -12,11 +12,12 @@ from PIL import Image
 from tqdm import tqdm
 
 IMG = Path("img/fry.svg")
-START_X = 130
-START_Y = 850
-SCALE = 5
+START_X = 160
+START_Y = 880
+MAX_WIDTH = 760
+MAX_HEIGHT = 520
 
-DRAW_FRAME = False
+DRAW_DEBUG_FRAME = False
 DUMP_BMP = True
 FRAME_SEGMENT_STEPS = 70
 DRAW_SWIPE_SIZE = 100
@@ -26,8 +27,8 @@ LOGGER.addHandler(logging.StreamHandler(sys.stdout))
 LOGGER.setLevel(logging.INFO)
 
 
-def load_black_pixels(svg_path: Path, scale: int) -> Iterator[tuple[int, int]]:
-    png_data = cairosvg.svg2png(url=svg_path.as_posix(), scale=scale)
+def load_black_pixels(svg_path: Path) -> Iterator[tuple[int, int]]:
+    png_data = cairosvg.svg2png(url=svg_path.as_posix(), output_width=MAX_WIDTH, output_height=MAX_HEIGHT)
     img = Image.open(BytesIO(png_data)).convert("LA")
     for y in range(img.height):
         for x in range(img.width):
@@ -49,6 +50,12 @@ def save_black_pixels(black_pixels: set[tuple[int, int]], bmp_path: Path) -> Non
     for x, y in black_pixels:
         img.putpixel((x - left, y - top), (0, 0, 0))
     img.save(bmp_path)
+
+
+def horisontal_align_left(pixels: set[tuple[int, int]]) -> Iterator[tuple[int, int]]:
+    left = min(x for x, _ in pixels)
+    for x, y in pixels:
+        yield (x - left, y)
 
 
 def get_neighbors(pos: tuple[int, int]) -> Iterator[tuple[int, int]]:
@@ -97,7 +104,7 @@ def find_connected_pixels(
         yield last_pixel
 
 
-def find_frame(black_pixels: set[tuple[int, int]]) -> Iterator[tuple[int, int]]:
+def find_content_frame(black_pixels: set[tuple[int, int]]) -> Iterator[tuple[int, int]]:
     top = min(y for _, y in black_pixels)
     bottom = max(y for _, y in black_pixels)
     left = min(x for x, _ in black_pixels)
@@ -118,7 +125,7 @@ def swipe(view_client: ViewClient, pixels: Iterator[tuple[int, int]], segment_st
 def main() -> None:
     workdir = Path(__file__).parent
     svg_path = workdir / IMG
-    black_pixels = set(load_black_pixels(svg_path, SCALE))
+    black_pixels = set(load_black_pixels(svg_path))
     LOGGER.info(f"Loaded {len(black_pixels)} black pixels from {svg_path}")
 
     if DUMP_BMP:
@@ -126,11 +133,22 @@ def main() -> None:
         save_black_pixels(black_pixels, bmp_path)
         LOGGER.info(f"Saved black pixels to {bmp_path}")
 
+    black_pixels = set(horisontal_align_left(black_pixels))
+
     view_client = ViewClient(*ViewClient.connectToDeviceOrExit(), useuiautomatorhelper=True)
 
-    if DRAW_FRAME:
-        frame = find_frame(black_pixels)
-        swipe(view_client, frame, 70)
+    if DRAW_DEBUG_FRAME:
+        content_frame = find_content_frame(black_pixels)
+        swipe(view_client, content_frame, FRAME_SEGMENT_STEPS)
+
+        target_frame = [
+            (0, 0),
+            (MAX_WIDTH, 0),
+            (MAX_WIDTH, MAX_HEIGHT),
+            (0, MAX_HEIGHT),
+            (0, 0),
+        ]
+        swipe(view_client, target_frame, FRAME_SEGMENT_STEPS)
 
     unprocessed_pixels = set(black_pixels)
     pbar = tqdm(total=len(unprocessed_pixels), desc="Drawing")
