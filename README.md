@@ -53,7 +53,7 @@ The script execution becomes progressively slower, particularly near completion,
    ```
 
 3. **Fine-tune parameters**
-   - Edit script parameters like `START_X`, `START_Y`, `MAX_WIDTH`, `MAX_HEIGHT`, `IMG`, `DRAW_DEBUG_FRAME` in img_to_swipes.py
+   - Edit script parameters `DEBUG`, `START_X`, `START_Y`, `MAX_WIDTH`, `MAX_HEIGHT`, `IMG` in img_to_swipes.py
 
 4. **Repeat**
    - Repeat steps 2-3 until desired result is achieved
