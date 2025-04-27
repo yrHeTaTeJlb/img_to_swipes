@@ -3,22 +3,23 @@ import sys
 from collections import Counter
 from io import BytesIO
 from pathlib import Path
-from typing import Iterator
+from typing import Iterable, Iterator
 
 import cairosvg
+import cv2
+import numpy as np
 from com.dtmilano.android.viewclient import ViewClient
 from culebratester_client.models import Point
 from PIL import Image
 from tqdm import tqdm
 
 IMG = Path("img/patrick.svg")
-START_X = 160
-START_Y = 880
-MAX_WIDTH = 760
+START_X = 115
+START_Y = 790
+MAX_WIDTH = 560
 MAX_HEIGHT = 520
 
-DRAW_DEBUG_FRAME = False
-DUMP_BMP = True
+DEBUG = False
 FRAME_SEGMENT_STEPS = 70
 DRAW_SWIPE_SIZE = 100
 
@@ -39,7 +40,7 @@ def load_black_pixels(svg_path: Path) -> Iterator[tuple[int, int]]:
                 yield (x, y)
 
 
-def save_black_pixels(black_pixels: set[tuple[int, int]], bmp_path: Path) -> None:
+def save_black_pixels(black_pixels: Iterable[tuple[int, int]], bmp_path: Path) -> None:
     top = min(y for _, y in black_pixels)
     bottom = max(y for _, y in black_pixels)
     left = min(x for x, _ in black_pixels)
@@ -52,7 +53,57 @@ def save_black_pixels(black_pixels: set[tuple[int, int]], bmp_path: Path) -> Non
     img.save(bmp_path)
 
 
-def horisontal_align_left(pixels: set[tuple[int, int]]) -> Iterator[tuple[int, int]]:
+def find_contours(black_pixels: set[tuple[int, int]], sequence_length: int) -> Iterator[list[tuple[int, int]]]:
+    top = min(y for _, y in black_pixels)
+    bottom = max(y for _, y in black_pixels)
+    left = min(x for x, _ in black_pixels)
+    right = max(x for x, _ in black_pixels)
+    width = right - left + 1
+    height = bottom - top + 1
+
+    mask = np.zeros((height, width), dtype=np.uint8)
+    for x, y in black_pixels:
+        mask[y - top, x - left] = 255
+
+    contours_raw, _ = cv2.findContours(mask, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
+    for contour_np in contours_raw:
+        relative_points = contour_np.squeeze(axis=1).tolist()
+        absolute_points = [(point[0] + left, point[1] + top) for point in relative_points]
+        contour_points = [tuple(point) for point in absolute_points]
+
+        num_contour_points = len(contour_points)
+        if num_contour_points == 0:
+            continue
+
+        num_chunks = max(1, round(num_contour_points / sequence_length))
+        contour_points_np = np.array(contour_points, dtype=object)
+        chunks_np = np.array_split(contour_points_np, num_chunks)
+        for chunk_np in chunks_np:
+            yield [tuple(point) for point in chunk_np.tolist()]
+
+
+def save_contours(contours: list[list[tuple[int, int]]], bmp_path: Path) -> None:
+    all_points = [point for contour in contours for point in contour]
+    min_x = min(p[0] for p in all_points)
+    max_x = max(p[0] for p in all_points)
+    min_y = min(p[1] for p in all_points)
+    max_y = max(p[1] for p in all_points)
+
+    width = max_x - min_x + 1
+    height = max_y - min_y + 1
+
+    contour_img = np.full((height, width, 3), 255, dtype=np.uint8)
+
+    contours_np = []
+    for contour in contours:
+        adjusted_contour = [(p[0] - min_x, p[1] - min_y) for p in contour]
+        contours_np.append(np.array(adjusted_contour, dtype=np.int32).reshape((-1, 1, 2)))
+
+    cv2.drawContours(contour_img, contours_np, -1, (0, 0, 0), thickness=1)
+    cv2.imwrite(bmp_path.as_posix(), contour_img)
+
+
+def horisontal_align_left(pixels: Iterable[tuple[int, int]]) -> Iterator[tuple[int, int]]:
     left = min(x for x, _ in pixels)
     for x, y in pixels:
         yield (x - left, y)
@@ -125,19 +176,23 @@ def swipe(view_client: ViewClient, pixels: Iterator[tuple[int, int]], segment_st
 def main() -> None:
     workdir = Path(__file__).parent
     svg_path = workdir / IMG
-    black_pixels = set(load_black_pixels(svg_path))
+    black_pixels = set(horisontal_align_left(list(load_black_pixels(svg_path))))
+    contours = list(find_contours(black_pixels, DRAW_SWIPE_SIZE))
     LOGGER.info(f"Loaded {len(black_pixels)} black pixels from {svg_path}")
 
-    if DUMP_BMP:
-        bmp_path = workdir / "img_to_swipes.bmp"
-        save_black_pixels(black_pixels, bmp_path)
-        LOGGER.info(f"Saved black pixels to {bmp_path}")
+    if DEBUG:
+        black_pixels_path = workdir / "debug" / "black_pixels.bmp"
+        save_black_pixels(black_pixels, black_pixels_path)
+        LOGGER.info(f"Saved black pixels to {black_pixels_path}")
 
-    black_pixels = set(horisontal_align_left(black_pixels))
+        contours_path = workdir / "debug" / "contours.bmp"
+        contour_pixels = [pixel for contour in contours for pixel in contour]
+        save_black_pixels(contour_pixels, contours_path)
+        LOGGER.info(f"Saved contours to {contours_path}")
 
     view_client = ViewClient(*ViewClient.connectToDeviceOrExit(), useuiautomatorhelper=True)
 
-    if DRAW_DEBUG_FRAME:
+    if DEBUG:
         content_frame = find_content_frame(black_pixels)
         swipe(view_client, content_frame, FRAME_SEGMENT_STEPS)
 
@@ -152,6 +207,15 @@ def main() -> None:
 
     unprocessed_pixels = set(black_pixels)
     pbar = tqdm(total=len(unprocessed_pixels), desc="Drawing")
+
+    for contour in contours:
+        swipe(view_client, contour, 2)
+
+        old_unprocessed_pixels_len = len(unprocessed_pixels)
+        unprocessed_pixels.difference_update(contour)
+        new_unprocessed_pixels_len = len(unprocessed_pixels)
+        pbar.update(old_unprocessed_pixels_len - new_unprocessed_pixels_len)
+
     while unprocessed_pixels:  # pylint: disable=while-used
         connected_pixels = list(find_connected_pixels(black_pixels, unprocessed_pixels, DRAW_SWIPE_SIZE))
         swipe(view_client, connected_pixels, 2)

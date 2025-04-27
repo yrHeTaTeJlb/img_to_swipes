@@ -1,5 +1,7 @@
 androidviewclient==24.1.0
 CairoSVG==2.7.1
 culebratester_client==2.0.73
-Pillow==11.1.0
+numpy==2.2.5
+opencv_python==4.11.0.86
+Pillow==11.2.1
 tqdm==4.67.1
