@@ -13,7 +13,7 @@ from culebratester_client.models import Point
 from PIL import Image
 from tqdm import tqdm
 
-IMG = Path("img/patrick.svg")
+IMG = Path("img/pepe.svg")
 START_X = 115
 START_Y = 790
 MAX_WIDTH = 560
