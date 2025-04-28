@@ -1,6 +1,7 @@
 import logging
 import sys
 from collections import Counter
+from dataclasses import dataclass
 from io import BytesIO
 from pathlib import Path
 from typing import Iterable, Iterator
@@ -28,6 +29,28 @@ LOGGER.addHandler(logging.StreamHandler(sys.stdout))
 LOGGER.setLevel(logging.INFO)
 
 
+@dataclass
+class Borders:
+    top: int
+    bottom: int
+    left: int
+    right: int
+
+    def __init__(self, points: Iterable[tuple[int, int]]) -> None:
+        self.top = min(y for _, y in points)
+        self.bottom = max(y for _, y in points)
+        self.left = min(x for x, _ in points)
+        self.right = max(x for x, _ in points)
+
+    @property
+    def width(self) -> int:
+        return self.right - self.left + 1
+
+    @property
+    def height(self) -> int:
+        return self.bottom - self.top + 1
+
+
 def load_black_pixels(svg_path: Path) -> Iterator[tuple[int, int]]:
     png_data = cairosvg.svg2png(url=svg_path.as_posix(), output_width=MAX_WIDTH, output_height=MAX_HEIGHT)
     img = Image.open(BytesIO(png_data)).convert("LA")
@@ -41,34 +64,25 @@ def load_black_pixels(svg_path: Path) -> Iterator[tuple[int, int]]:
 
 
 def save_black_pixels(black_pixels: Iterable[tuple[int, int]], bmp_path: Path) -> None:
-    top = min(y for _, y in black_pixels)
-    bottom = max(y for _, y in black_pixels)
-    left = min(x for x, _ in black_pixels)
-    right = max(x for x, _ in black_pixels)
-    width = right - left + 1
-    height = bottom - top + 1
-    img = Image.new("RGB", (width, height), color="white")
+    borders = Borders(black_pixels)
+
+    img = Image.new("RGB", (borders.width, borders.height), color="white")
     for x, y in black_pixels:
-        img.putpixel((x - left, y - top), (0, 0, 0))
+        img.putpixel((x - borders.left, y - borders.top), (0, 0, 0))
     img.save(bmp_path)
 
 
 def find_contours(black_pixels: set[tuple[int, int]], sequence_length: int) -> Iterator[list[tuple[int, int]]]:
-    top = min(y for _, y in black_pixels)
-    bottom = max(y for _, y in black_pixels)
-    left = min(x for x, _ in black_pixels)
-    right = max(x for x, _ in black_pixels)
-    width = right - left + 1
-    height = bottom - top + 1
+    borders = Borders(black_pixels)
 
-    mask = np.zeros((height, width), dtype=np.uint8)
+    mask = np.zeros((borders.height, borders.width), dtype=np.uint8)
     for x, y in black_pixels:
-        mask[y - top, x - left] = 255
+        mask[y - borders.top, x - borders.left] = 255
 
     contours_raw, _ = cv2.findContours(mask, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
     for contour_np in contours_raw:
         relative_points = contour_np.squeeze(axis=1).tolist()
-        absolute_points = [(point[0] + left, point[1] + top) for point in relative_points]
+        absolute_points = [(point[0] + borders.left, point[1] + borders.top) for point in relative_points]
         contour_points = [tuple(point) for point in absolute_points]
 
         num_contour_points = len(contour_points)
@@ -77,26 +91,18 @@ def find_contours(black_pixels: set[tuple[int, int]], sequence_length: int) -> I
 
         num_chunks = max(1, round(num_contour_points / sequence_length))
         contour_points_np = np.array(contour_points, dtype=object)
-        chunks_np = np.array_split(contour_points_np, num_chunks)
-        for chunk_np in chunks_np:
+        for chunk_np in np.array_split(contour_points_np, num_chunks):
             yield [tuple(point) for point in chunk_np.tolist()]
 
 
 def save_contours(contours: list[list[tuple[int, int]]], bmp_path: Path) -> None:
-    all_points = [point for contour in contours for point in contour]
-    min_x = min(p[0] for p in all_points)
-    max_x = max(p[0] for p in all_points)
-    min_y = min(p[1] for p in all_points)
-    max_y = max(p[1] for p in all_points)
+    borders = Borders(point for contour in contours for point in contour)
 
-    width = max_x - min_x + 1
-    height = max_y - min_y + 1
-
-    contour_img = np.full((height, width, 3), 255, dtype=np.uint8)
+    contour_img = np.full((borders.height, borders.width, 3), 255, dtype=np.uint8)
 
     contours_np = []
     for contour in contours:
-        adjusted_contour = [(p[0] - min_x, p[1] - min_y) for p in contour]
+        adjusted_contour = [(p[0] - borders.left, p[1] - borders.top) for p in contour]
         contours_np.append(np.array(adjusted_contour, dtype=np.int32).reshape((-1, 1, 2)))
 
     cv2.drawContours(contour_img, contours_np, -1, (0, 0, 0), thickness=1)
@@ -156,16 +162,13 @@ def find_connected_pixels(
 
 
 def find_content_frame(black_pixels: set[tuple[int, int]]) -> Iterator[tuple[int, int]]:
-    top = min(y for _, y in black_pixels)
-    bottom = max(y for _, y in black_pixels)
-    left = min(x for x, _ in black_pixels)
-    right = max(x for x, _ in black_pixels)
+    borders = Borders(black_pixels)
 
-    yield (left, top)
-    yield (right, top)
-    yield (right, bottom)
-    yield (left, bottom)
-    yield (left, top)
+    yield (borders.left, borders.top)
+    yield (borders.right, borders.top)
+    yield (borders.right, borders.bottom)
+    yield (borders.left, borders.bottom)
+    yield (borders.left, borders.top)
 
 
 def swipe(view_client: ViewClient, pixels: Iterator[tuple[int, int]], segment_steps: int) -> None:
