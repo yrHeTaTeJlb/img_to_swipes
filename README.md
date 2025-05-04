@@ -10,64 +10,97 @@ The script execution becomes progressively slower, particularly near completion,
 ## Prerequisites
 
 - Python 3.7+
-- ADB (Android Debug Bridge)
-- Android device with USB debugging enabled
-- CulebraTester2 APKs installed on device
+- For android
+   - ADB (Android Debug Bridge)
+   - Android device with USB debugging enabled
+   - CulebraTester2 APKs installed on device
+- For ios
+   - Node js
+   - Appium
+   - Appium driver xcuitest
 
-## Setup Instructions
+## Setup Instructions for android
 
 1. **Install dependencies**
    ```
    pip install -r requirements.txt
    ```
 
-2. **Enable USB debugging on your Android device**
+1. **Enable USB debugging on your Android device**
    - Settings → About Phone → Tap "Build Number" 7 times
    - Settings → System → Developer Options → Enable "USB Debugging"
    - Settings → System → Developer Options → Enable "USB debugging (Security setting)"
    - Settings → System → Developer Options → Disable "Permission Monitoring"
    - Restart
 
-3. **Install ADB**
+1. **Install ADB**
    - [Download](https://developer.android.com/studio/releases/platform-tools) and install Android platform tools
 
-4. **Connect your Android device**
+1. **Connect your Android device**
    - Connect via USB
    - Confirm debugging prompt on device
    - Verify connection with `adb devices`
 
-5. **Install CulebraTester2 APKs**
+1. **Install CulebraTester2 APKs**
    - Download APKs from [GitHub](https://github.com/dtmilano/CulebraTester2-public/wiki/Prebuilt-APKs)
    - Install both APKs on your device
-
-## Usage
 
 1. **Start CulebraTester server**
    ```
    ./culebra_tester.sh
    ```
 
-2. **Run the image-to-swipes converter**
+## Setup Instructions for ios
+**Note: These instructions are provided for reference but haven't been verified since I don't have Apple devices. They may be incomplete or require additional steps.**
+
+1. **Install dependencies**
+
+   ```
+   pip install -r requirements.txt
+   ```
+
+1. **Install nodejs**
+   ```
+   brew install node
+   ```
+
+1. **Install appium**
+   ```
+   npm install -g appium
+   ```
+
+1. **Install xcuitest driver**
+   ```
+   appium driver install xcuitest
+   ```
+
+1. **Start Appium server**
+   ```
+   appium
+   ```
+
+1. **Change platform [parameter](img_to_swipes.py#L22)**
+   ```
+   PLATFORM = "ios"
+   ```
+
+## Usage
+
+1. **Run the image-to-swipes converter**
    ```
    python img_to_swipes.py
    ```
 
-3. **Fine-tune parameters**
+1. **Fine-tune script [parameters](img_to_swipes.py#L16-L21)**
    - Edit script parameters `DEBUG`, `START_X`, `START_Y`, `MAX_WIDTH`, `MAX_HEIGHT`, `IMG` in img_to_swipes.py
 
-4. **Repeat**
-   - Repeat steps 2-3 until desired result is achieved
+1. **Repeat**
+   - Repeat steps 1-2 until desired result is achieved
 
 ## How It Works
 
 1. SVG image is converted to pixel coordinates
 2. Connected pixels are identified to create swipe paths
-3. The script executes swipe gestures on the Android device via CulebraTester
-
-## Troubleshooting
-
-- Ensure device is properly connected with ADB
-- Check that CulebraTester2 services are running
-- Adjust scaling parameters if drawing is too large/small
+3. The script executes swipe gestures on the device via an automation framework
 
 :shipit:
