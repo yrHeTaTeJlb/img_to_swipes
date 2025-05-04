@@ -1,3 +1,4 @@
+import importlib
 import logging
 import sys
 from collections import Counter
@@ -9,8 +10,6 @@ from typing import Iterable, Iterator
 import cairosvg
 import cv2
 import numpy as np
-from com.dtmilano.android.viewclient import ViewClient
-from culebratester_client.models import Point
 from PIL import Image
 from tqdm import tqdm
 
@@ -20,6 +19,7 @@ START_Y = 790
 MAX_WIDTH = 560
 MAX_HEIGHT = 520
 DEBUG = False
+PLATFORM = "android"
 
 FRAME_SEGMENT_STEPS = 70
 DRAW_SWIPE_SIZE = 100
@@ -27,6 +27,9 @@ DRAW_SWIPE_SIZE = 100
 LOGGER = logging.getLogger(__name__)
 LOGGER.addHandler(logging.StreamHandler(sys.stdout))
 LOGGER.setLevel(logging.INFO)
+
+Swiper = importlib.import_module(f"platforms.{PLATFORM}.swiper").Swiper
+SWIPER = Swiper()
 
 
 @dataclass
@@ -161,19 +164,31 @@ def find_connected_pixels(
         yield last_pixel
 
 
-def find_content_frame(black_pixels: set[tuple[int, int]]) -> Iterator[tuple[int, int]]:
+def find_content_frame(black_pixels: Iterable[tuple[int, int]]) -> Iterator[tuple[int, int]]:
     borders = Borders(black_pixels)
 
-    yield (borders.left, borders.top)
+    horizontal_step = max(1, borders.width // FRAME_SEGMENT_STEPS)
+    vertical_step = max(1, borders.height // FRAME_SEGMENT_STEPS)
+
+    for x in range(borders.left, borders.right + 1, horizontal_step):
+        yield (x, borders.top)
     yield (borders.right, borders.top)
+
+    for y in range(borders.top, borders.bottom + 1, vertical_step):
+        yield (borders.right, y)
     yield (borders.right, borders.bottom)
+
+    for x in range(borders.right, borders.left - 1, -horizontal_step):
+        yield (x, borders.bottom)
     yield (borders.left, borders.bottom)
+
+    for y in range(borders.bottom, borders.top - 1, -vertical_step):
+        yield (borders.left, y)
     yield (borders.left, borders.top)
 
 
-def swipe(view_client: ViewClient, pixels: Iterator[tuple[int, int]], segment_steps: int) -> None:
-    segments = [Point(x + START_X, y + START_Y) for x, y in pixels]
-    view_client.uiAutomatorHelper.ui_device.swipe(segments=segments, segment_steps=segment_steps)
+def swipe(pixels: Iterator[tuple[int, int]]) -> None:
+    SWIPER.swipe((x + START_X, y + START_Y) for x, y in pixels)
 
 
 def main() -> None:
@@ -195,26 +210,15 @@ def main() -> None:
         save_black_pixels(contour_pixels, contours_path)
         LOGGER.info(f"Saved contours to {contours_path}")
 
-    view_client = ViewClient(*ViewClient.connectToDeviceOrExit(), useuiautomatorhelper=True)
-
     if DEBUG:
-        content_frame = find_content_frame(black_pixels)
-        swipe(view_client, content_frame, FRAME_SEGMENT_STEPS)
-
-        target_frame = [
-            (0, 0),
-            (MAX_WIDTH, 0),
-            (MAX_WIDTH, MAX_HEIGHT),
-            (0, MAX_HEIGHT),
-            (0, 0),
-        ]
-        swipe(view_client, target_frame, FRAME_SEGMENT_STEPS)
+        swipe(find_content_frame(black_pixels))
+        swipe(find_content_frame([(0, 0), (MAX_WIDTH, 0), (0, MAX_HEIGHT)]))
 
     unprocessed_pixels = set(black_pixels)
     pbar = tqdm(total=len(unprocessed_pixels), desc="Drawing")
 
     for contour in contours:
-        swipe(view_client, contour, 2)
+        swipe(contour)
 
         old_unprocessed_pixels_len = len(unprocessed_pixels)
         unprocessed_pixels.difference_update(contour)
@@ -223,7 +227,7 @@ def main() -> None:
 
     while unprocessed_pixels:  # pylint: disable=while-used
         connected_pixels = list(find_connected_pixels(black_pixels, unprocessed_pixels, DRAW_SWIPE_SIZE))
-        swipe(view_client, connected_pixels, 2)
+        swipe(connected_pixels)
 
         old_unprocessed_pixels_len = len(unprocessed_pixels)
         unprocessed_pixels.difference_update(connected_pixels)
