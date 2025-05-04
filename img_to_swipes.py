@@ -178,7 +178,9 @@ def swipe(view_client: ViewClient, pixels: Iterator[tuple[int, int]], segment_st
 
 def main() -> None:
     workdir = Path(__file__).parent
-    svg_path = workdir / IMG
+    svg_path = IMG
+    if not svg_path.absolute():
+        svg_path = workdir / IMG
     black_pixels = set(horisontal_align_left(list(load_black_pixels(svg_path))))
     contours = list(find_contours(black_pixels, DRAW_SWIPE_SIZE))
     LOGGER.info(f"Loaded {len(black_pixels)} black pixels from {svg_path}")
