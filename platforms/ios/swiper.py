@@ -12,9 +12,9 @@ class Swiper:
     def __init__(self) -> None:
         driver = webdriver.Remote(options=XCUITestOptions())
 
-        self._actions = ActionChains(driver, duration=15)
+        self._actions = ActionChains(driver, duration=20)
         touch_input = PointerInput(interaction.POINTER_TOUCH, 'touch')
-        self._actions.w3c_actions = ActionBuilder(driver, mouse=touch_input, duration=15)
+        self._actions.w3c_actions = ActionBuilder(driver, mouse=touch_input, duration=20)
 
     def swipe(self, points: Iterable[tuple[int, int]]) -> None:
         start = next(iter(points), None)
