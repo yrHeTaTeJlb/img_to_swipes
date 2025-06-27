@@ -43,6 +43,7 @@ The script execution becomes progressively slower, particularly near completion,
 
 1. **Install CulebraTester2 APKs**
    - Download APKs from [GitHub](https://github.com/dtmilano/CulebraTester2-public/wiki/Prebuilt-APKs)
+   - **Fallback:** If official builds have expired, use APKs from the `culebra_tester` directory in this repository
    - Install both APKs on your device
 
 1. **Start CulebraTester server**
