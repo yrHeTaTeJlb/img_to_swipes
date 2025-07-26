@@ -7,10 +7,13 @@ from io import BytesIO
 from pathlib import Path
 from typing import Iterable, Iterator
 
-import cairosvg
 import cv2
+import fitz
 import numpy as np
+import pymupdf
 from PIL import Image
+from reportlab.graphics import renderPDF
+from svglib import svglib
 from tqdm import tqdm
 
 IMG = Path("img/pepe.svg")
@@ -23,6 +26,7 @@ PLATFORM = "android"
 
 FRAME_SEGMENT_STEPS = 70
 DRAW_SWIPE_SIZE = 100
+LUMINOSITY_THRESHOLD = 200
 
 LOGGER = logging.getLogger(__name__)
 LOGGER.addHandler(logging.StreamHandler(sys.stdout))
@@ -54,15 +58,33 @@ class Borders:
         return self.bottom - self.top + 1
 
 
+def make_scale_matrix(rect: pymupdf.Rect, max_width: int, max_height: int) -> fitz.Matrix:
+    scale_factor = max_width / rect.width
+    if int(rect.height * scale_factor) > max_height:
+        scale_factor = max_height / rect.height
+
+    return fitz.Matrix(scale_factor, scale_factor)
+
+
+def svg2png(svg_path: Path, output_width: int, output_height: int) -> bytes:
+    drawing = svglib.svg2rlg(path=svg_path.as_posix())
+    pdf = renderPDF.drawToString(drawing)
+    doc = fitz.Document(stream=pdf)
+    page = doc.load_page(0)
+    matrix = make_scale_matrix(page.rect, output_width, output_height)
+    pix = page.get_pixmap(matrix=matrix, alpha=True)
+    return pix.tobytes("png")
+
+
 def load_black_pixels(svg_path: Path) -> Iterator[tuple[int, int]]:
-    png_data = cairosvg.svg2png(url=svg_path.as_posix(), output_width=MAX_WIDTH, output_height=MAX_HEIGHT)
+    png_data = svg2png(svg_path, output_width=MAX_WIDTH, output_height=MAX_HEIGHT)
     img = Image.open(BytesIO(png_data)).convert("LA")
     for y in range(img.height):
         for x in range(img.width):
             pixel = img.getpixel((x, y))
             assert isinstance(pixel, tuple)
             luminosity, alpha = pixel
-            if alpha > 0 and luminosity < 255:
+            if alpha > 0 and luminosity < LUMINOSITY_THRESHOLD:
                 yield (x, y)
 
 

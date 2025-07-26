@@ -1,9 +1,12 @@
 androidviewclient==24.1.0
 Appium_Python_Client==5.0.0
-CairoSVG==2.7.1
 culebratester_client==2.0.73
+fitz==0.0.1.dev2
 numpy==2.2.5
 opencv_python==4.11.0.86
 Pillow==11.2.1
+pymupdf==1.26.3
+reportlab==4.4.3
 selenium==4.32.0
+svglib==1.5.1
 tqdm==4.67.1
