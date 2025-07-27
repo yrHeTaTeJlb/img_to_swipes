@@ -8,7 +8,6 @@ from pathlib import Path
 from typing import Iterable, Iterator
 
 import cv2
-import fitz
 import numpy as np
 import pymupdf
 from PIL import Image
@@ -58,18 +57,18 @@ class Borders:
         return self.bottom - self.top + 1
 
 
-def make_scale_matrix(rect: pymupdf.Rect, max_width: int, max_height: int) -> fitz.Matrix:
+def make_scale_matrix(rect: pymupdf.Rect, max_width: int, max_height: int) -> pymupdf.Matrix:
     scale_factor = max_width / rect.width
     if int(rect.height * scale_factor) > max_height:
         scale_factor = max_height / rect.height
 
-    return fitz.Matrix(scale_factor, scale_factor)
+    return pymupdf.Matrix(scale_factor, scale_factor)
 
 
 def svg2png(svg_path: Path, output_width: int, output_height: int) -> bytes:
     drawing = svglib.svg2rlg(path=svg_path.as_posix())
     pdf = renderPDF.drawToString(drawing)
-    doc = fitz.Document(stream=pdf)
+    doc = pymupdf.Document(stream=pdf)
     page = doc.load_page(0)
     matrix = make_scale_matrix(page.rect, output_width, output_height)
     pix = page.get_pixmap(matrix=matrix, alpha=True)
