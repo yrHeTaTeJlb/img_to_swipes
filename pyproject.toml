@@ -1,0 +1,21 @@
+[project]
+name = "img-to-swipes"
+version = "0.1.0"
+description = ""
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "appium-python-client>=5.2.2",
+    "nodejs-bin>=18.4.0a4",
+    "numpy>=2.2.6",
+    "opencv-python>=4.11.0.86",
+    "pillow>=11.3.0",
+    "pymupdf>=1.26.3",
+    "reportlab>=4.4.3",
+    "selenium>=4.35.0",
+    "svglib>=1.5.1",
+    "toml>=0.10.2",
+    "tqdm>=4.67.1",
+    "types-reportlab>=4.4.1.20250809",
+    "types-toml>=0.10.8.20240310",
+]
