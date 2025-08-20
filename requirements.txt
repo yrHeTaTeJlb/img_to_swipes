@@ -10,3 +10,7 @@ reportlab==4.4.3
 selenium==4.32.0
 svglib==1.5.1
 tqdm==4.67.1
+nodejs-bin==18.4.0a4
+types-reportlab==4.4.1
+toml==0.10.1
+types-toml==0.10.8

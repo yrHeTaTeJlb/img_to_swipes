@@ -1,6 +1,6 @@
 # Android Swipe Drawing Tool
 
-This tool converts SVG images into touch swipes on Android devices. Perfect for customizing
+This tool converts images into touch swipes on Android devices. Useful for drawing logos, signatures, and simple art via automated gestures.
 
 ## Performance Considerations
 

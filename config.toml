@@ -1,0 +1,35 @@
+# Image to draw. Only svg supported
+# May be relative to script path, or absolute
+image_path = "img/fry.svg"
+
+# Draw area
+canvas_x = 115
+canvas_y = 790
+canvas_width = 560
+canvas_height = 520
+
+# Whether to draw target area bounding rect
+# Possible values: [true, false]
+draw_canvas_rect = true
+
+# Whether to draw image bounding rect
+# Possible values: [true, false]
+draw_image_rect = true
+
+# Whether to content image bounding rect
+# Possible values: [true, false]
+draw_content_rect = true
+
+# Amount of pixels per swipe
+swipe_length = 200
+
+# Luminocity of pixelc considered as black during raserizing image
+# Possible values: [0: 255]
+luminosity_threshold = 200
+
+# Duration of swipe in milliseconds
+swipe_duration = 1
+
+# Mobile devive to draw
+# Possible values: ["android"]
+target_platform = "android"
