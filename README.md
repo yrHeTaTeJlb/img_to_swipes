@@ -1,107 +1,69 @@
-# Android Swipe Drawing Tool
+# Swipe Drawing Tool
 
 This tool converts images into touch swipes on Android devices. Useful for drawing logos, signatures, and simple art via automated gestures.
 
-## Performance Considerations
 
-The script execution becomes progressively slower, particularly near completion, as pixels may be drawn multiple times. Drawing all pixels without repetition is hard. [NP-hard](https://en.wikipedia.org/wiki/Longest_path_problem), to be precise
+# Platforms
+Currently, only Android is supported. In theory, it can be extended to other platforms supported by Appium:
+https://appium.io/docs/en/2.19/ecosystem/drivers/
 
+iOS is excluded: the platform does not allow performing automated gestures on apps signed with a distribution certificate, which prevents using this tool on iOS devices.
 
 ## Prerequisites
 
-- Python 3.7+
-- For android
-   - ADB (Android Debug Bridge)
-   - Android device with USB debugging enabled
-   - CulebraTester2 APKs installed on device
-- For ios
-   - Node js
-   - Appium
-   - Appium driver xcuitest
+- [UV installed](https://docs.astral.sh/uv/getting-started/installation/)
+- [USB debugging enabled](https://www.mobikin.com/android-backup/how-to-enable-usb-debugging.html)
 
-## Setup Instructions for android
 
-1. **Install dependencies**
-   ```
-   pip install -r requirements.txt
-   ```
+## Setup Instructions
 
-1. **Enable USB debugging on your Android device**
-   - Settings → About Phone → Tap "Build Number" 7 times
-   - Settings → System → Developer Options → Enable "USB Debugging"
-   - Settings → System → Developer Options → Enable "USB debugging (Security setting)"
-   - Settings → System → Developer Options → Disable "Permission Monitoring"
-   - Restart
+1. **Install UV**
+2. **Enable USB debugging on your Android device**
+3. **Connect your device to the computer**
 
-1. **Install ADB**
-   - [Download](https://developer.android.com/studio/releases/platform-tools) and install Android platform tools
-
-1. **Connect your Android device**
-   - Connect via USB
-   - Confirm debugging prompt on device
-   - Verify connection with `adb devices`
-
-1. **Install CulebraTester2 APKs**
-   - Download APKs from [GitHub](https://github.com/dtmilano/CulebraTester2-public/wiki/Prebuilt-APKs)
-   - **Fallback:** If official builds have expired, use APKs from the `culebra_tester` directory in this repository
-   - Install both APKs on your device
-
-1. **Start CulebraTester server**
-   ```
-   ./culebra_tester.sh
-   ```
-
-## Setup Instructions for ios
-**Note: These instructions are provided for reference but haven't been verified since I don't have Apple devices. They may be incomplete or require additional steps.**
-
-1. **Install dependencies**
-
-   ```
-   pip install -r requirements.txt
-   ```
-
-1. **Install nodejs**
-   ```
-   brew install node
-   ```
-
-1. **Install appium**
-   ```
-   npm install -g appium
-   ```
-
-1. **Install xcuitest driver**
-   ```
-   appium driver install xcuitest
-   ```
-
-1. **Start Appium server**
-   ```
-   appium
-   ```
-
-1. **Change platform [parameter](img_to_swipes.py#L22)**
-   ```
-   PLATFORM = "ios"
-   ```
 
 ## Usage
 
-1. **Run the image-to-swipes converter**
-   ```
-   python img_to_swipes.py
+1. **Select the image you want to draw in config.toml**
+   ```toml
+   [image]
+   path = "img/fry.svg"
    ```
 
-1. **Fine-tune script [parameters](img_to_swipes.py#L16-L21)**
-   - Edit script parameters `DEBUG`, `START_X`, `START_Y`, `MAX_WIDTH`, `MAX_HEIGHT`, `IMG` in img_to_swipes.py
+1. Run the script
+   ```bash
+   ./img_to_swipes.sh
+   ```
+   or
+   ```bat
+   img_to_swipes.cmd
+   ```
 
-1. **Repeat**
-   - Repeat steps 1-2 until desired result is achieved
+1. Pay attention to where debug rects are drawn on the screen. Adjust canvas coordinates if needed:
+   ```toml
+   [canvas]
+   x = 115
+   y = 790
+   width = 560
+   height = 520
+   ```
+
+1. **Repeat steps 2–3 until satisfied, then disable debug rects drawing**
+   ```toml
+   [debug]
+   draw_canvas_rect = false
+   draw_image_rect = false
+   draw_content_rect = false
+   ```
+
+1. **Run the script one last time**
+
 
 ## How It Works
 
-1. SVG image is converted to pixel coordinates
-2. Connected pixels are identified to create swipe paths
-3. The script executes swipe gestures on the device via an automation framework
+1. Image is scaled and converted to grayscale
+1. Black pixels are identified
+1. Connected pixels are identified to create swipe paths
+1. The script executes swipe gestures on the device via an automation framework
 
 :shipit:
