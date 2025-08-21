@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from functools import lru_cache
 import json
+import os
+from functools import lru_cache
 
-from nodejs import npm, npx
+from nodejs import npm
 
 from src.config import current_config
 from src.log import logger
@@ -35,28 +36,13 @@ def install_appium() -> None:
     log_path = config.artifacts_dir / "install_appium.log"
     with open(log_path, "w", encoding='utf-8') as log_file:
         try:
-            npm.run(["install", "appium@2"], stdout=log_file, stderr=log_file, check=True)
+            env = os.environ.copy()
+            env["PATH"] = os.pathsep.join([env.get("PATH", ""), config.node_path.parent.as_posix()])
+            npm.run(["install", "appium@2"], stdout=log_file, stderr=log_file, check=True, env=env)
         except Exception as e:
             raise RuntimeError(f"Failed to install Appium. See {log_path} for details") from e
 
     logger.info("Appium installed successfully")
-
-
-# def find_installed_appium_drivers() -> list[str]:
-#     logger.info("Querying installed Appium drivers...")
-
-#     try:
-#         process = npx.run(["appium", "driver", "ls", "--json"], capture_output=True, text=True, check=True)
-#     except Exception as e:
-#         raise RuntimeError("Failed to query installed Appium drivers") from e
-
-#     drivers = []
-#     for driver, info in json.loads(process.stdout).items():
-#         if info["installed"]:
-#             drivers.append(driver)
-#     logger.info(f"Found {len(drivers)} installed Appium drivers")
-
-#     return drivers
 
 
 def install_appium_driver(driver_name: str) -> None:
@@ -69,25 +55,12 @@ def install_appium_driver(driver_name: str) -> None:
     log_path = config.artifacts_dir / "install_appium_driver.log"
     with open(log_path, "w", encoding='utf-8') as log_file:
         try:
-            npm.run(["install", driver_name], stdout=log_file, stderr=log_file, check=True)
+            env = os.environ.copy()
+            env["PATH"] = os.pathsep.join([env.get("PATH", ""), config.node_path.parent.as_posix()])
+            npm.run(["install", driver_name], stdout=log_file, stderr=log_file, check=True, env=env)
         except Exception as e:
             raise RuntimeError(f"Failed to install Appium driver '{driver_name}'. See {log_path} for details") from e
 
     logger.info(f"Appium driver '{driver_name}' installed successfully")
 
 
-    # logger.info(f"Installing Appium driver '{driver_name}'...")
-
-    # if driver_name in find_installed_appium_drivers():
-    #     logger.info(f"Appium driver '{driver_name}' is already installed")
-    #     return
-
-    # config = current_config()
-    # log_path = config.artifacts_dir / "appium_driver_install.log"
-    # with open(log_path, "w", encoding='utf-8') as log_file:
-    #     try:
-    #         npx.run(["appium", "driver", "install", driver_name], stdout=log_file, stderr=log_file, check=True)
-    #     except Exception as e:
-    #         raise RuntimeError(f"Failed to install Appium driver '{driver_name}'. See {log_path} for details") from e
-
-    # logger.info(f"Appium driver '{driver_name}' installed successfully")
