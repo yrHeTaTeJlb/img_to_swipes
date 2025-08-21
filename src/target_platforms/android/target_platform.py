@@ -1,5 +1,4 @@
 import os
-from pathlib import Path
 from typing import TextIO
 
 from appium import webdriver
@@ -8,8 +7,8 @@ from appium.webdriver.appium_service import AppiumService
 
 from src.config import current_config
 from src.log import logger
+from src.nodejs_utils import install_appium, install_uiautomator
 from src.target_platforms.target_platform import ITargetPlatform
-from src.nodejs_utils import install_appium, install_appium_driver
 
 
 class TargetPlatform(ITargetPlatform):
@@ -19,7 +18,7 @@ class TargetPlatform(ITargetPlatform):
 
     def install_dependencies(self) -> None:
         install_appium()
-        install_appium_driver("appium-uiautomator2-driver@4")
+        install_uiautomator()
 
     def start_service(self) -> None:
         if self._appium_service.is_running:
