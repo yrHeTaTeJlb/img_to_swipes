@@ -145,7 +145,16 @@ class Config:
         return path
 
     def _find_npm_path(self) -> Path:
-        return Path(node.path).parent / "npm.cmd"
+        if self.host_platform == HostPlatform.linux:
+            return self.platform_tools_path / "nodejs" / "npm.sh"
+
+        if self.host_platform == HostPlatform.darwin:
+            return self.platform_tools_path / "nodejs" / "npm.sh"
+
+        if self.host_platform == HostPlatform.windows:
+            return self.platform_tools_path / "nodejs" / "npm.cmd"
+
+        raise ValueError(f"Unsupported host platform: {self.host_platform.name}")
 
     def _find_host_platform(self) -> HostPlatform:
         if sys.platform.startswith("linux"):
