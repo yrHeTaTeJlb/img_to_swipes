@@ -21,7 +21,6 @@ def log_config() -> None:
     logger.info(f"Root dir: {config.root_dir}")
     logger.info(f"Artifacts dir: {config.artifacts_dir}")
     logger.info(f"Node path: {config.node_path}")
-    logger.info(f"Npm path: {config.npm_path}")
     logger.info(f"Image path: {config.image_path}")
     logger.info(f"Draw canvas bounding rect: {config.draw_canvas_rect}")
     logger.info(f"Draw image bounding rect: {config.draw_image_rect}")

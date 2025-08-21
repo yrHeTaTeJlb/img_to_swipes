@@ -4,6 +4,7 @@ import json
 import os
 from dataclasses import dataclass
 from functools import lru_cache
+from pathlib import Path
 
 from nodejs import npm
 
@@ -39,6 +40,22 @@ def find_installed_npm_packages() -> set[Package]:
     logger.info(f"Found {len(packages)} installed npm packages")
 
     return set(packages)
+
+
+@lru_cache
+def modules_root() -> Path:
+    logger.info("Querying Node.js modules root directory...")
+
+    try:
+        process = npm.run(["root"], capture_output=True, text=True, check=True)
+    except Exception as e:
+        raise RuntimeError("Failed to query Node.js modules root directory") from e
+
+    path = Path(process.stdout.strip())
+
+    logger.info(f"Node.js modules root directory: {path}")
+
+    return path
 
 
 def install_package(package_name: str, package_version: str) -> None:

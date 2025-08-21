@@ -3,11 +3,11 @@ from typing import TextIO
 
 from appium import webdriver
 from appium.options.android import UiAutomator2Options
-from appium.webdriver.appium_service import AppiumService
+from appium.webdriver.appium_service import AppiumService, MAIN_SCRIPT_PATH
 
 from src.config import current_config
 from src.log import logger
-from src.nodejs_utils import install_appium, install_uiautomator
+from src.nodejs_utils import install_appium, install_uiautomator, modules_root
 from src.target_platforms.target_platform import ITargetPlatform
 
 
@@ -33,14 +33,17 @@ class TargetPlatform(ITargetPlatform):
         env["ANDROID_HOME"] = (config.platform_tools_path / "android").as_posix()
         env["PATH"] = os.pathsep.join([env.get("PATH", ""), config.node_path.parent.as_posix()])
 
+        main_script = modules_root() / MAIN_SCRIPT_PATH
+
         logger.info("Starting Appium service for Android...")
         self._appium_service.start(
             node=config.node_path,
-            npm=config.npm_path,
+            npm="npm",
             env=env,
             stdout=self._appium_service_log,
             stderr=self._appium_service_log,
             timeout_ms=120000,
+            main_script=main_script,
         )
         logger.info("Appium service for Android started successfully")
 

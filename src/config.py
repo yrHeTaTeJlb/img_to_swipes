@@ -28,7 +28,6 @@ class Config:
         self._host_platform: HostPlatform = self._find_host_platform()
         self._platform_tools_path: Path = self._find_platform_tools_path()
         self._node_path: Path = self._find_node_path()
-        self._npm_path: Path = self._find_npm_path()
 
         config_dict = toml.load(self.config_path)
         self._target_platform: ITargetPlatform = self._find_target_platform(config_dict)
@@ -71,10 +70,6 @@ class Config:
     @property
     def node_path(self) -> Path:
         return self._node_path
-
-    @property
-    def npm_path(self) -> Path:
-        return self._npm_path
 
     @property
     def target_platform(self) -> ITargetPlatform:
@@ -143,18 +138,6 @@ class Config:
             path = self.root_dir / path
 
         return path
-
-    def _find_npm_path(self) -> Path:
-        if self.host_platform == HostPlatform.linux:
-            return self.platform_tools_path / "nodejs" / "npm.sh"
-
-        if self.host_platform == HostPlatform.darwin:
-            return self.platform_tools_path / "nodejs" / "npm.sh"
-
-        if self.host_platform == HostPlatform.windows:
-            return self.platform_tools_path / "nodejs" / "npm.cmd"
-
-        raise ValueError(f"Unsupported host platform: {self.host_platform.name}")
 
     def _find_host_platform(self) -> HostPlatform:
         if sys.platform.startswith("linux"):
