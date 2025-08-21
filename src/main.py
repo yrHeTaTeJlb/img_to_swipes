@@ -7,7 +7,7 @@ from typing import Iterator
 from tqdm import tqdm
 
 from src.config import current_config
-from src.geometry import Point, Rect
+from src.geometry import Point, Polygon, Rect
 from src.image import Image
 from src.log import logger
 from src.swiper import Swiper
@@ -91,13 +91,13 @@ def draw_images(images: list[Image]) -> None:
     config = current_config()
 
     swiper = Swiper(config.swipe_duration)
-    total_stroke_count = sum(len(image.strokes) for image in images)
-    with tqdm(total=total_stroke_count, smoothing=1) as pbar:
-        for image in images:
-            for stroke in image.strokes:
-                canvas_stroke = stroke.offset(config.canvas_rect.left, config.canvas_rect.top)
-                swiper.swipe(canvas_stroke)
-                pbar.update()
+    strokes: list[Polygon] = []
+    for image in images:
+        for stroke in image.strokes:
+            strokes.append(stroke.offset(config.canvas_rect.left, config.canvas_rect.top))
+
+    for stroke in tqdm(strokes, smoothing=1, colour="green"):
+        swiper.swipe(stroke)
 
 
 def main() -> None:
