@@ -31,7 +31,7 @@ class TargetPlatform(ITargetPlatform):
             self._appium_service_log = open(config.artifacts_dir / "appium.log", "w", encoding='utf-8')
 
         env = os.environ.copy()
-        env["ANDROID_HOME"] = (Path(__file__).parent / "platform_tools" / config.host_platform.name).as_posix()
+        env["ANDROID_HOME"] = (config.platform_tools_path / "android").as_posix()
         env["PATH"] = os.pathsep.join([env.get("PATH", ""), config.node_path.parent.as_posix()])
 
         logger.info("Starting Appium service for Android...")

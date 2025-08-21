@@ -26,6 +26,7 @@ class Config:
         self._root_dir: Path = Path(sys.argv[0]).parent.absolute()
         self._config_path = self._find_config_path()
         self._host_platform: HostPlatform = self._find_host_platform()
+        self._platform_tools_path: Path = self._find_platform_tools_path()
         self._node_path: Path = self._find_node_path()
         self._npm_path: Path = self._find_npm_path()
 
@@ -42,6 +43,10 @@ class Config:
         self._swipe_duration: int = self._find_swipe_duration(config_dict)
 
         self._artifacts_dir.mkdir(exist_ok=True)
+
+    @property
+    def platform_tools_path(self) -> Path:
+        return self._platform_tools_path
 
     @property
     def config_path(self) -> Path:
@@ -153,6 +158,9 @@ class Config:
             return HostPlatform.windows
 
         raise ValueError(f"Unsupported platform: {sys.platform}")
+
+    def _find_platform_tools_path(self) -> Path:
+        return self.root_dir / "platform_tools" / self.host_platform.name
 
     def _find_target_platform(self, config_dict: dict[str, Any]) -> ITargetPlatform:
         target_platform_name = self._find_key(config_dict, "target_platform", "name", str, None)
