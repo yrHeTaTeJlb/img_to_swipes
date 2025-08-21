@@ -1,35 +1,55 @@
-# Image to draw. Only svg supported
-# May be relative to script path, or absolute
-image_path = "img/fry.svg"
+[image]
+# Path to the source image (all major formats).
+# Relative paths are resolved from the script directory; absolute paths are allowed.
+path = "img/fry.svg"
 
-# Draw area
-canvas_x = 115
-canvas_y = 790
-canvas_width = 560
-canvas_height = 520
+# Maximum luminance used when selecting pixels for drawing.
+# Possible values: [0–255] (the less value, the darker a pixel must be to be drawn).
+max_luminosity = 200
 
-# Whether to draw target area bounding rect
+
+[canvas]
+# Target drawing area on the device screen (in device pixels).
+# x, y define the top-left corner; width, height define the size.
+x = 115
+y = 790
+width = 560
+height = 520
+
+
+[swipe]
+# Maximum number of pixels per swipe gesture segment.
+# Longer strokes are split into multiple swipes to avoid OS gesture limits.
+swipe_length = 200
+
+# Delay between consecutive swipe points, in milliseconds.
+# Lower values draw faster but may lead to missed touches.
+swipe_duration = 1
+
+
+[debug]
+# Draw the target canvas bounding rectangle.
 # Possible values: [true, false]
 draw_canvas_rect = true
 
-# Whether to draw image bounding rect
+# Draw the image bounding rectangle (before fitting into the canvas).
 # Possible values: [true, false]
 draw_image_rect = true
 
-# Whether to content image bounding rect
+# Draw the content bounding rectangle (tight bounds of black pixels).
 # Possible values: [true, false]
 draw_content_rect = true
 
-# Amount of pixels per swipe
-swipe_length = 200
 
-# Luminocity of pixelc considered as black during raserizing image
-# Possible values: [0: 255]
-luminosity_threshold = 200
-
-# Duration of swipe in milliseconds
-swipe_duration = 1
-
-# Mobile devive to draw
+[target_platform]
+# Target platform for drawing.
 # Possible values: ["android"]
-target_platform = "android"
+# Other platforms can be implemented via Appium drivers: https://appium.io/docs/en/2.19/ecosystem/drivers/
+# iOS is excluded: system gestures are blocked for apps signed with distribution certificates.
+name = "android"
+
+
+[artifacts]
+# Directory for generated artifacts (e.g., raster previews, logs).
+# Relative paths are resolved from the script directory; absolute paths are allowed.
+path = "artifacts"

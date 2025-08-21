@@ -36,7 +36,7 @@ class Image:
         return Image(strokes)
 
     @staticmethod
-    def from_pil_image(image: PilImage, max_stroke_length: int, luminosity_threshold: int) -> Image:
+    def from_pil_image(image: PilImage, max_stroke_length: int, max_luminosity: int) -> Image:
         black_pixels = []
         gray_image = image.convert("LA")
         for y in range(gray_image.height):
@@ -44,14 +44,14 @@ class Image:
                 pixel = gray_image.getpixel((x, y))
                 assert isinstance(pixel, tuple)
                 luminosity, alpha = pixel
-                if alpha > 0 and luminosity < luminosity_threshold:
+                if alpha > 0 and luminosity < max_luminosity:
                     black_pixels.append(Point(x, y))
 
         return Image.from_pixels(black_pixels, max_stroke_length)
 
     @staticmethod
     def from_svg(
-        svg_path: Path, max_width: int, max_height: int, max_stroke_length: int, luminosity_threshold: int
+        svg_path: Path, max_width: int, max_height: int, max_stroke_length: int, max_luminosity: int
     ) -> Image:
         drawing = svglib.svg2rlg(path=svg_path.as_posix())
         pdf = renderPDF.drawToString(drawing)
@@ -66,16 +66,16 @@ class Image:
         pix = page.get_pixmap(matrix=matrix, alpha=True)
         png_data = pix.tobytes("png")
         with pil_open(BytesIO(png_data)) as pil_image:
-            return Image.from_pil_image(pil_image, max_stroke_length, luminosity_threshold)
+            return Image.from_pil_image(pil_image, max_stroke_length, max_luminosity)
 
     @staticmethod
     def from_file(
-        path: Path, max_width: int, max_height: int, max_stroke_length: int, luminosity_threshold: int
+        path: Path, max_width: int, max_height: int, max_stroke_length: int, max_luminosity: int
     ) -> Image:
         if path.suffix.lower() == ".svg":
-            return Image._from_svg_file(path, max_width, max_height, max_stroke_length, luminosity_threshold)
+            return Image._from_svg_file(path, max_width, max_height, max_stroke_length, max_luminosity)
 
-        return Image._from_any_file(path, max_width, max_height, max_stroke_length, luminosity_threshold)
+        return Image._from_any_file(path, max_width, max_height, max_stroke_length, max_luminosity)
 
     @property
     def pixels(self) -> list[Point]:
@@ -114,7 +114,7 @@ class Image:
 
     @staticmethod
     def _from_any_file(
-        path: Path, max_width: int, max_height: int, max_stroke_length: int, luminosity_threshold: int
+        path: Path, max_width: int, max_height: int, max_stroke_length: int, max_luminosity: int
     ) -> Image:
         with pil_open(path) as pil_image:
             if pil_image.width != max_width and pil_image.height != max_height:
@@ -122,11 +122,11 @@ class Image:
                 new_size = (int(pil_image.width * scale_factor), int(pil_image.height * scale_factor))
                 pil_image.resize(new_size, resample=PilResampling.LANCZOS)
 
-            return Image.from_pil_image(pil_image, max_stroke_length, luminosity_threshold)
+            return Image.from_pil_image(pil_image, max_stroke_length, max_luminosity)
 
     @staticmethod
     def _from_svg_file(
-        path: Path, max_width: int, max_height: int, max_stroke_length: int, luminosity_threshold: int
+        path: Path, max_width: int, max_height: int, max_stroke_length: int, max_luminosity: int
     ) -> Image:
         drawing = svglib.svg2rlg(path.as_posix())
         pdf = renderPDF.drawToString(drawing)
@@ -138,4 +138,4 @@ class Image:
         pix = page.get_pixmap(matrix=matrix, alpha=True)
         png_data = pix.tobytes("png")
         with pil_open(BytesIO(png_data)) as pil_image:
-            return Image.from_pil_image(pil_image, max_stroke_length, luminosity_threshold)
+            return Image.from_pil_image(pil_image, max_stroke_length, max_luminosity)

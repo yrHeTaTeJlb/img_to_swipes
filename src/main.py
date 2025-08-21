@@ -26,7 +26,7 @@ def log_config() -> None:
     logger.info(f"Draw canvas bounding rect: {config.draw_canvas_rect}")
     logger.info(f"Draw image bounding rect: {config.draw_image_rect}")
     logger.info(f"Draw content bounding rect: {config.draw_content_rect}")
-    logger.info(f"Luminosity threshold: {config.luminosity_threshold}")
+    logger.info(f"Maximum luminosity: {config.max_luminosity}")
     logger.info(f"Canvas rect: {config.canvas_rect}")
     logger.info(f"Swipe length: {config.swipe_length}")
     logger.info(f"Swipe duration(ms): {config.swipe_duration}")
@@ -41,7 +41,7 @@ def load_image() -> Image:
         config.canvas_rect.size.width,
         config.canvas_rect.size.height,
         config.swipe_length,
-        config.luminosity_threshold,
+        config.max_luminosity,
     )
     logger.info(f"Loaded {len(image.pixels)} black pixels({len(image.strokes)} strokes) from {config.image_path}")
     return image
