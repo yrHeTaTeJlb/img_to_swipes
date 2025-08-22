@@ -1,9 +1,14 @@
 from __future__ import annotations
 
 import colorsys
+import sys
+from logging import INFO, FileHandler
 from math import ceil
+from pathlib import Path
 from typing import Iterator
 
+from rich.highlighter import NullHighlighter
+from rich.logging import RichHandler
 from tqdm import tqdm
 
 from src.config import current_config
@@ -100,12 +105,24 @@ def draw_images(images: list[Image]) -> None:
         swiper.swipe(stroke)
 
 
+def configure_logging() -> None:
+    logger.setLevel(INFO)
+    logger.addHandler(RichHandler(show_time=False, show_path=False, highlighter=NullHighlighter()))
+    logger.addHandler(FileHandler(Path(sys.argv[0]).parent / "img_to_swipes.log", mode="w"))
+
+
 def main() -> None:
-    log_config()
+    try:
+        configure_logging()
 
-    image = load_image()
-    save_pixels(image)
-    save_strokes(image)
+        log_config()
 
-    images = list(make_image_queue(image))
-    draw_images(images)
+        image = load_image()
+        save_pixels(image)
+        save_strokes(image)
+
+        images = list(make_image_queue(image))
+        draw_images(images)
+    except Exception as e:
+        logger.exception(e)
+        raise

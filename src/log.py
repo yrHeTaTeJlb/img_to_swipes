@@ -1,7 +1,3 @@
-import logging
-from src.config import current_config
+from logging import getLogger
 
-logger = logging.getLogger("img_to_swipes")
-logger.setLevel(logging.INFO)
-logger.addHandler(logging.StreamHandler())
-logger.addHandler(logging.FileHandler(current_config().artifacts_dir / "img_to_swipes.log"))
+logger = getLogger("img_to_swipes")

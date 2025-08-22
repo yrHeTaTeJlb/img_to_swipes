@@ -61,10 +61,10 @@ def modules_root() -> Path:
 def install_package(package_name: str, package_version: str) -> None:
     package = Package(package_name, package_version)
     if package in find_installed_npm_packages():
-        logger.info(f"'{package}' is already installed")
+        logger.info(f"Package '{package}' is already installed")
         return
 
-    logger.info(f"Installing '{package}'...")
+    logger.info(f"Installing package '{package}'...")
 
     config = current_config()
     log_path = config.artifacts_dir / f"install_{package}.log"
@@ -76,7 +76,7 @@ def install_package(package_name: str, package_version: str) -> None:
         except Exception as e:
             raise RuntimeError(f"Failed to install '{package}'. See {log_path} for details") from e
 
-    logger.info("Appium installed successfully")
+    logger.info(f"Package '{package}' installed successfully")
 
 
 def install_appium() -> None:
