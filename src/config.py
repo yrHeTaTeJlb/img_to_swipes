@@ -191,10 +191,18 @@ class Config:
         return Rect(Point(x, y), Point(x + width, y + height))
 
     def _find_swipe_length(self, config_dict: dict[str, Any]) -> int:
-        return self._find_key(config_dict, "swipe", "swipe_length", int, 200)
+        swipe_length = self._find_key(config_dict, "swipe", "swipe_length", int, 200)
+        if swipe_length <= 0:
+            raise ValueError("Swipe length must be a positive integer")
+
+        return swipe_length
 
     def _find_swipe_duration(self, config_dict: dict[str, Any]) -> int:
-        return self._find_key(config_dict, "swipe", "swipe_duration", int, 1)
+        swipe_duration = self._find_key(config_dict, "swipe", "swipe_duration", int, 1)
+        if swipe_duration <= 0:
+            raise ValueError("Swipe duration must be a positive integer")
+
+        return swipe_duration
 
 
 @lru_cache
