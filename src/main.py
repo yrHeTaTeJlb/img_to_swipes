@@ -108,7 +108,7 @@ def draw_images(images: list[Image]) -> None:
 def configure_logging() -> None:
     logger.setLevel(INFO)
     logger.addHandler(RichHandler(show_time=False, show_path=False, highlighter=NullHighlighter()))
-    logger.addHandler(FileHandler(Path(sys.argv[0]).parent / "img_to_swipes.log", mode="w"))
+    logger.addHandler(FileHandler(Path(sys.argv[0]).parent / "img_to_swipes.log", mode="w", encoding="utf-8"))
 
 
 def main() -> None:
