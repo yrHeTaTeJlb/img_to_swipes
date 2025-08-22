@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 import colorsys
-import sys
 from logging import INFO, FileHandler
 from math import ceil
-from pathlib import Path
+from wakepy import keep
 from typing import Iterator
 
 from rich.highlighter import NullHighlighter
@@ -103,16 +102,17 @@ def configure_logging() -> None:
 
 def main() -> None:
     try:
-        configure_logging()
+        with keep.running():
+            configure_logging()
 
-        log_config()
+            log_config()
 
-        image = load_image()
-        save_pixels(image)
-        save_strokes(image)
+            image = load_image()
+            save_pixels(image)
+            save_strokes(image)
 
-        images = list(make_image_queue(image))
-        draw_images(images)
+            images = list(make_image_queue(image))
+            draw_images(images)
     except Exception as e:
         logger.exception(e)
         raise
