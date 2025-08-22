@@ -1,9 +1,13 @@
 import os
+import subprocess
+from pathlib import Path
+from time import sleep
 from typing import TextIO
 
 from appium import webdriver
 from appium.options.android import UiAutomator2Options
-from appium.webdriver.appium_service import AppiumService, MAIN_SCRIPT_PATH
+from appium.webdriver.appium_service import MAIN_SCRIPT_PATH, AppiumService
+from selenium.common.exceptions import WebDriverException
 
 from src.config import current_config
 from src.log import logger
@@ -58,4 +62,44 @@ class TargetPlatform(ITargetPlatform):
         logger.info("Appium service for Android stopped successfully")
 
     def make_driver(self) -> webdriver.Remote:
-        return webdriver.Remote(options=UiAutomator2Options())
+        attempt_count = 5
+        attempt_delay = 10
+        for attempt in range(1, attempt_count + 1):
+            logger.info(f"Creating Appium driver for Android (attempt {attempt}/{attempt_count})...")
+            try:
+                driver = webdriver.Remote(options=UiAutomator2Options())
+                logger.info("Appium driver for Android created successfully")
+                return driver
+            except WebDriverException as e:
+                logger.warning(self._make_friendly_error_message(e))
+                if attempt < attempt_count:
+                    logger.info(f"Killing adb server and retrying in {attempt_delay} seconds...")
+                    sleep(attempt_delay)
+                    self._kill_adb()
+                else:
+                    logger.error(
+                        "Exceeded maximum number of attempts to create Appium driver for Android. "
+                        f"Disconnect your device, enable USB debugging, execute '{self._adb} kill-server', "
+                        "and then reconnect the device."
+                    )
+                    raise
+
+        raise RuntimeError("Failed to create Appium driver for Android")
+
+    @property
+    def _adb(self) -> Path:
+        config = current_config()
+        return config.platform_tools_path / "android" / "adb"
+
+    def _kill_adb(self) -> None:
+        subprocess.run([self._adb, "kill-server"], check=False)
+
+    def _make_friendly_error_message(self, exception: WebDriverException) -> str:
+        error_message = exception.msg or ""
+
+        if "device unauthorized" in error_message:
+            return "Device unauthorized. Check for a confirmation dialog on your device"
+        if "Could not find a connected Android device" in error_message:
+            return "Device not found. Make sure your device is connected and USB debugging is enabled"
+
+        return f"Failed to create Appium driver for Android: {error_message}"
