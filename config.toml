@@ -11,10 +11,10 @@ max_luminosity = 200
 [canvas]
 # Target drawing area on the device screen (in device pixels).
 # x, y define the top-left corner; width, height define the size.
-x = 115
-y = 790
-width = 560
-height = 520
+x = 300
+y = 670
+width = 650
+height = 490
 
 
 [swipe]

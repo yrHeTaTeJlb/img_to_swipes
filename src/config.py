@@ -85,12 +85,12 @@ def nodejs_path() -> Path:
 
 @lru_cache
 def target_platform() -> ITargetPlatform:
-    target_platform_name = _config_key("target_platform", "name", str, None)
-    platform_module = importlib.import_module(f"src.target_platforms.{target_platform_name}.target_platform")
-    target_platform = platform_module.TargetPlatform()
-    assert isinstance(target_platform, ITargetPlatform)
+    platform_name = _config_key("target_platform", "name", str, None)
+    platform_module = importlib.import_module(f"src.target_platforms.{platform_name}.target_platform")
+    platform = platform_module.TargetPlatform()
+    assert isinstance(platform, ITargetPlatform)
 
-    return target_platform
+    return platform
 
 
 @lru_cache
@@ -128,11 +128,11 @@ def draw_content_rect() -> bool:
 
 @lru_cache
 def max_luminosity() -> int:
-    max_luminosity = _config_key("image", "max_luminosity", int, 200)
-    if not (0 <= max_luminosity <= 255):
+    value = _config_key("image", "max_luminosity", int, 200)
+    if not (0 <= value <= 255):
         raise ValueError("Max luminosity must be between 0 and 255")
 
-    return max_luminosity
+    return value
 
 
 @lru_cache
@@ -153,17 +153,17 @@ def canvas_rect() -> Rect:
 
 @lru_cache
 def swipe_length() -> int:
-    swipe_length = _config_key("swipe", "swipe_length", int, 200)
-    if swipe_length <= 0:
+    value = _config_key("swipe", "swipe_length", int, 200)
+    if value <= 0:
         raise ValueError("Swipe length must be a positive integer")
 
-    return swipe_length
+    return value
 
 
 @lru_cache
 def swipe_duration() -> int:
-    swipe_duration = _config_key("swipe", "swipe_duration", int, 1)
-    if swipe_duration <= 0:
+    value = _config_key("swipe", "swipe_duration", int, 1)
+    if value <= 0:
         raise ValueError("Swipe duration must be a positive integer")
 
-    return swipe_duration
+    return value

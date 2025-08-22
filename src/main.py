@@ -70,17 +70,18 @@ def save_strokes(image: Image) -> None:
 
 def make_image_queue(image: Image) -> Iterator[Image]:
     rect_lerp_step_count = ceil(config.swipe_length() / 4)
-    if config.draw_content_rect():
-        yield Image.from_strokes([image.content_bounding_rect.to_polygon().lerp(rect_lerp_step_count)])
-
-    if config.draw_image_rect():
-        image_rect = Rect(Point(0, 0), Point(image.size.width, image.size.height))
-        yield Image.from_strokes([image_rect.to_polygon().lerp(rect_lerp_step_count)])
 
     if config.draw_canvas_rect():
         canvas_size = config.canvas_rect().size
         canvas_rect = Rect(Point(0, 0), Point(canvas_size.width, canvas_size.height))
         yield Image.from_strokes([canvas_rect.to_polygon().lerp(rect_lerp_step_count)])
+
+    if config.draw_image_rect():
+        image_rect = Rect(Point(0, 0), Point(image.size.width, image.size.height))
+        yield Image.from_strokes([image_rect.to_polygon().lerp(rect_lerp_step_count)])
+
+    if config.draw_content_rect():
+        yield Image.from_strokes([image.content_bounding_rect.to_polygon().lerp(rect_lerp_step_count)])
 
     yield image
 
