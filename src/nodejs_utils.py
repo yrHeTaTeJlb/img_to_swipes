@@ -8,7 +8,7 @@ from pathlib import Path
 
 from nodejs import npm
 
-from src.config import current_config
+from src import config
 from src.log import logger
 
 
@@ -66,12 +66,11 @@ def install_package(package_name: str, package_version: str) -> None:
 
     logger.info(f"Installing package '{package}'...")
 
-    config = current_config()
-    log_path = config.artifacts_dir / f"install_{package}.log"
+    log_path = config.artifacts_dir() / f"install_{package}.log"
     with open(log_path, "w", encoding='utf-8') as log_file:
         try:
             env = os.environ.copy()
-            env["PATH"] = os.pathsep.join([env.get("PATH", ""), config.node_path.parent.as_posix()])
+            env["PATH"] = os.pathsep.join([env.get("PATH", ""), config.nodejs_path().parent.as_posix()])
             npm.run(["install", str(package)], stdout=log_file, stderr=log_file, check=True, env=env)
         except Exception as e:
             raise RuntimeError(f"Failed to install '{package}'. See {log_path} for details") from e

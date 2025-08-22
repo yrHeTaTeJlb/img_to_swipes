@@ -9,7 +9,7 @@ from appium.options.android import UiAutomator2Options
 from appium.webdriver.appium_service import MAIN_SCRIPT_PATH, AppiumService
 from selenium.common.exceptions import WebDriverException
 
-from src.config import current_config
+from src import config
 from src.log import logger
 from src.nodejs_utils import install_appium, install_uiautomator, modules_root
 from src.target_platforms.target_platform import ITargetPlatform
@@ -20,6 +20,10 @@ class TargetPlatform(ITargetPlatform):
         self._appium_service: AppiumService = AppiumService()
         self._appium_service_log: TextIO | None = None
 
+    @property
+    def name(self) -> str:
+        return "Android"
+
     def install_dependencies(self) -> None:
         install_appium()
         install_uiautomator()
@@ -28,20 +32,18 @@ class TargetPlatform(ITargetPlatform):
         if self._appium_service.is_running:
             return
 
-        config = current_config()
-
         if not self._appium_service_log:
-            self._appium_service_log = open(config.artifacts_dir / "appium.log", "w", encoding='utf-8')
+            self._appium_service_log = open(config.artifacts_dir() / "appium.log", "w", encoding='utf-8')
 
         env = os.environ.copy()
-        env["ANDROID_HOME"] = (config.platform_tools_path / "android").as_posix()
-        env["PATH"] = os.pathsep.join([env.get("PATH", ""), config.node_path.parent.as_posix()])
+        env["ANDROID_HOME"] = (config.platform_tools_path() / "android").as_posix()
+        env["PATH"] = os.pathsep.join([env.get("PATH", ""), config.nodejs_path().parent.as_posix()])
 
         main_script = modules_root() / MAIN_SCRIPT_PATH
 
         logger.info("Starting Appium service for Android...")
         self._appium_service.start(
-            node=config.node_path,
+            node=config.nodejs_path(),
             npm="npm",
             env=env,
             stdout=self._appium_service_log,
@@ -88,8 +90,7 @@ class TargetPlatform(ITargetPlatform):
 
     @property
     def _adb(self) -> Path:
-        config = current_config()
-        return config.platform_tools_path / "android" / "adb"
+        return config.platform_tools_path() / "android" / "adb"
 
     def _kill_adb(self) -> None:
         subprocess.run([self._adb, "kill-server"], check=False)

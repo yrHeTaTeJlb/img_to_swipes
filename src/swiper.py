@@ -1,26 +1,24 @@
 import atexit
 from functools import lru_cache
+
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.actions import interaction
 from selenium.webdriver.common.actions.action_builder import ActionBuilder
 from selenium.webdriver.common.actions.pointer_input import PointerInput
 
+from src import config
 from src.geometry import Polygon
-
-from src.config import current_config
 
 
 @lru_cache
 def _install_target_platform_dependencies() -> None:
-    config = current_config()
-    config.target_platform.install_dependencies()
+    config.target_platform().install_dependencies()
 
 
 @lru_cache
 def _start_target_platform_service() -> None:
-    config = current_config()
-    atexit.register(config.target_platform.stop_service)
-    config.target_platform.start_service()
+    atexit.register(config.target_platform().stop_service)
+    config.target_platform().start_service()
 
 
 class Swiper:
@@ -28,8 +26,7 @@ class Swiper:
         _install_target_platform_dependencies()
         _start_target_platform_service()
 
-        config = current_config()
-        driver = config.target_platform.make_driver()
+        driver = config.target_platform().make_driver()
         self._actions = ActionChains(driver, duration=duration)
         touch_input = PointerInput(interaction.POINTER_TOUCH, 'touch')
         self._actions.w3c_actions = ActionBuilder(driver, mouse=touch_input, duration=duration)

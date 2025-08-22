@@ -21,190 +21,149 @@ class HostPlatform(Enum):
 T = TypeVar("T")
 
 
-class Config:
-    def __init__(self) -> None:
-        self._root_dir: Path = Path(sys.argv[0]).parent.absolute()
-        self._config_path = self._find_config_path()
-        self._host_platform: HostPlatform = self._find_host_platform()
-        self._platform_tools_path: Path = self._find_platform_tools_path()
-        self._node_path: Path = self._find_node_path()
-
-        config_dict = toml.load(self.config_path)
-        self._target_platform: ITargetPlatform = self._find_target_platform(config_dict)
-        self._artifacts_dir: Path = self._find_artifacts_dir(config_dict)
-        self._image_path: Path = self._find_image_path(config_dict)
-        self._draw_canvas_rect: bool = self._find_draw_canvas_rect(config_dict)
-        self._draw_image_rect: bool = self._find_draw_image_rect(config_dict)
-        self._draw_content_rect: bool = self._find_draw_content_rect(config_dict)
-        self._max_luminosity: int = self._find_max_luminosity(config_dict)
-        self._canvas_rect: Rect = self._find_canvas_rect(config_dict)
-        self._swipe_length: int = self._find_swipe_length(config_dict)
-        self._swipe_duration: int = self._find_swipe_duration(config_dict)
-
-        self._artifacts_dir.mkdir(exist_ok=True)
-
-    @property
-    def platform_tools_path(self) -> Path:
-        return self._platform_tools_path
-
-    @property
-    def config_path(self) -> Path:
-        return self._config_path
-
-    @property
-    def swipe_duration(self) -> int:
-        return self._swipe_duration
-
-    @property
-    def swipe_length(self) -> int:
-        return self._swipe_length
-
-    @property
-    def canvas_rect(self) -> Rect:
-        return self._canvas_rect
-
-    @property
-    def max_luminosity(self) -> int:
-        return self._max_luminosity
-
-    @property
-    def node_path(self) -> Path:
-        return self._node_path
-
-    @property
-    def target_platform(self) -> ITargetPlatform:
-        return self._target_platform
-
-    @property
-    def host_platform(self) -> HostPlatform:
-        return self._host_platform
-
-    @property
-    def root_dir(self) -> Path:
-        return self._root_dir
-
-    @property
-    def image_path(self) -> Path:
-        return self._image_path
-
-    @property
-    def artifacts_dir(self) -> Path:
-        return self._artifacts_dir
-
-    @property
-    def draw_canvas_rect(self) -> bool:
-        return self._draw_canvas_rect
-
-    @property
-    def draw_image_rect(self) -> bool:
-        return self._draw_image_rect
-
-    @property
-    def draw_content_rect(self) -> bool:
-        return self._draw_content_rect
-
-    @staticmethod
-    def _find_key(config_dict: dict[str, Any], category: str, key: str, key_type: type[T], default: T | None) -> T:
-        category_dict = config_dict.get(category)
-        if category_dict is None:
-            if default is not None:
-                return default
-            raise ValueError(f"Category {category} not specified in config.toml")
-
-        if not isinstance(category_dict, dict):
-            raise TypeError(f"\"{category}\" must be a category")
-
-        key_value = category_dict.get(key)
-        if key_value is None:
-            if default is not None:
-                return default
-            raise ValueError(f"Key {key} not specified in {category} category of config.toml")
-
-        if not isinstance(key_value, key_type):
-            raise TypeError(f"Key {key} in {category} category must be of type {key_type.__name__}")
-
-        return key_value
-
-    def _find_config_path(self) -> Path:
-        return self._root_dir / "config.toml"
-
-    def _find_node_path(self) -> Path:
-        return Path(node.path)
-
-    def _find_artifacts_dir(self, config_dict: dict[str, Any]) -> Path:
-        path_str = self._find_key(config_dict, "artifacts", "path", str, None)
-        path = Path(path_str)
-        if not path.is_absolute():
-            path = self.root_dir / path
-
-        return path
-
-    def _find_host_platform(self) -> HostPlatform:
-        if sys.platform.startswith("linux"):
-            return HostPlatform.linux
-
-        if sys.platform == "darwin":
-            return HostPlatform.darwin
-
-        if sys.platform in {"win32", "cygwin", "msys"}:
-            return HostPlatform.windows
-
-        raise ValueError(f"Unsupported platform: {sys.platform}")
-
-    def _find_platform_tools_path(self) -> Path:
-        return self.root_dir / "platform_tools" / self.host_platform.name
-
-    def _find_target_platform(self, config_dict: dict[str, Any]) -> ITargetPlatform:
-        target_platform_name = self._find_key(config_dict, "target_platform", "name", str, None)
-        platform_module = importlib.import_module(f"src.target_platforms.{target_platform_name}.target_platform")
-        target_platform = platform_module.TargetPlatform()
-        assert isinstance(target_platform, ITargetPlatform)
-
-        return target_platform
-
-    def _find_image_path(self, config_dict: dict[str, Any]) -> Path:
-        path_str = self._find_key(config_dict, "image", "path", str, None)
-        path = Path(path_str)
-        if not path.is_absolute():
-            path = self.root_dir / path
-
-        return path
-
-    def _find_draw_canvas_rect(self, config_dict: dict[str, Any]) -> bool:
-        return self._find_key(config_dict, "debug", "draw_canvas_rect", bool, False)
-
-    def _find_draw_image_rect(self, config_dict: dict[str, Any]) -> bool:
-        return self._find_key(config_dict, "debug", "draw_image_rect", bool, False)
-
-    def _find_draw_content_rect(self, config_dict: dict[str, Any]) -> bool:
-        return self._find_key(config_dict, "debug", "draw_content_rect", bool, False)
-
-    def _find_max_luminosity(self, config_dict: dict[str, Any]) -> int:
-        return self._find_key(config_dict, "image", "max_luminosity", int, 200)
-
-    def _find_canvas_rect(self, config_dict: dict[str, Any]) -> Rect:
-        x = self._find_key(config_dict, "canvas", "x", int, None)
-        y = self._find_key(config_dict, "canvas", "y", int, None)
-        width = self._find_key(config_dict, "canvas", "width", int, None)
-        height = self._find_key(config_dict, "canvas", "height", int, None)
-
-        return Rect(Point(x, y), Point(x + width, y + height))
-
-    def _find_swipe_length(self, config_dict: dict[str, Any]) -> int:
-        swipe_length = self._find_key(config_dict, "swipe", "swipe_length", int, 200)
-        if swipe_length <= 0:
-            raise ValueError("Swipe length must be a positive integer")
-
-        return swipe_length
-
-    def _find_swipe_duration(self, config_dict: dict[str, Any]) -> int:
-        swipe_duration = self._find_key(config_dict, "swipe", "swipe_duration", int, 1)
-        if swipe_duration <= 0:
-            raise ValueError("Swipe duration must be a positive integer")
-
-        return swipe_duration
+@lru_cache
+def _config_dict() -> dict[str, Any]:
+    return toml.load(config_path())
 
 
 @lru_cache
-def current_config() -> Config:
-    return Config()
+def _config_key(category: str, key: str, key_type: type[T], default: T | None) -> T:
+    category_dict = _config_dict().get(category)
+    if category_dict is None:
+        if default is not None:
+            return default
+        raise ValueError(f"Category {category} not specified in config.toml")
+
+    if not isinstance(category_dict, dict):
+        raise TypeError(f"\"{category}\" must be a category")
+
+    key_value = category_dict.get(key)
+    if key_value is None:
+        if default is not None:
+            return default
+        raise ValueError(f"Key {key} not specified in {category} category of config.toml")
+
+    if not isinstance(key_value, key_type):
+        raise TypeError(f"Key {key} in {category} category must be of type {key_type.__name__}")
+
+    return key_value
+
+
+@lru_cache
+def root_dir() -> Path:
+    return Path(sys.argv[0]).parent.absolute()
+
+
+@lru_cache
+def config_path() -> Path:
+    return root_dir() / "config.toml"
+
+
+@lru_cache
+def host_platform() -> HostPlatform:
+    if sys.platform.startswith("linux"):
+        return HostPlatform.linux
+
+    if sys.platform == "darwin":
+        return HostPlatform.darwin
+
+    if sys.platform in {"win32", "cygwin", "msys"}:
+        return HostPlatform.windows
+
+    raise ValueError(f"Unsupported platform: {sys.platform}")
+
+
+@lru_cache
+def platform_tools_path() -> Path:
+    return root_dir() / "platform_tools" / host_platform().name
+
+
+@lru_cache
+def nodejs_path() -> Path:
+    return Path(node.path)
+
+
+@lru_cache
+def target_platform() -> ITargetPlatform:
+    target_platform_name = _config_key("target_platform", "name", str, None)
+    platform_module = importlib.import_module(f"src.target_platforms.{target_platform_name}.target_platform")
+    target_platform = platform_module.TargetPlatform()
+    assert isinstance(target_platform, ITargetPlatform)
+
+    return target_platform
+
+
+@lru_cache
+def artifacts_dir() -> Path:
+    path = root_dir() / "artifacts"
+    path.mkdir(exist_ok=True)
+
+    return path
+
+
+@lru_cache
+def image_path() -> Path:
+    path_str = _config_key("image", "path", str, None)
+    path = Path(path_str)
+    if not path.is_absolute():
+        path = root_dir() / path
+
+    return path
+
+
+@lru_cache
+def draw_canvas_rect() -> bool:
+    return _config_key("debug", "draw_canvas_rect", bool, False)
+
+
+@lru_cache
+def draw_image_rect() -> bool:
+    return _config_key("debug", "draw_image_rect", bool, False)
+
+
+@lru_cache
+def draw_content_rect() -> bool:
+    return _config_key("debug", "draw_content_rect", bool, False)
+
+
+@lru_cache
+def max_luminosity() -> int:
+    max_luminosity = _config_key("image", "max_luminosity", int, 200)
+    if not (0 <= max_luminosity <= 255):
+        raise ValueError("Max luminosity must be between 0 and 255")
+
+    return max_luminosity
+
+
+@lru_cache
+def canvas_rect() -> Rect:
+    x = _config_key("canvas", "x", int, None)
+    y = _config_key("canvas", "y", int, None)
+
+    width = _config_key("canvas", "width", int, None)
+    if width <= 0:
+        raise ValueError("Canvas width must be greater than 0")
+
+    height = _config_key("canvas", "height", int, None)
+    if height <= 0:
+        raise ValueError("Canvas height must be greater than 0")
+
+    return Rect(Point(x, y), Point(x + width, y + height))
+
+
+@lru_cache
+def swipe_length() -> int:
+    swipe_length = _config_key("swipe", "swipe_length", int, 200)
+    if swipe_length <= 0:
+        raise ValueError("Swipe length must be a positive integer")
+
+    return swipe_length
+
+
+@lru_cache
+def swipe_duration() -> int:
+    swipe_duration = _config_key("swipe", "swipe_duration", int, 1)
+    if swipe_duration <= 0:
+        raise ValueError("Swipe duration must be a positive integer")
+
+    return swipe_duration

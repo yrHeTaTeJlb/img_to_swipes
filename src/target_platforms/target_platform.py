@@ -4,6 +4,11 @@ from appium import webdriver
 
 
 class ITargetPlatform(ABC):
+    @property
+    @abstractmethod
+    def name(self) -> str:
+        ...
+
     @abstractmethod
     def install_dependencies(self) -> None:
         ...

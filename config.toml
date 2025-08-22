@@ -47,9 +47,3 @@ draw_content_rect = true
 # Other platforms can be implemented via Appium drivers: https://appium.io/docs/en/2.19/ecosystem/drivers/
 # iOS is excluded: system gestures are blocked for apps signed with distribution certificates.
 name = "android"
-
-
-[artifacts]
-# Directory for generated artifacts (e.g., raster previews, logs).
-# Relative paths are resolved from the script directory; absolute paths are allowed.
-path = "artifacts"
