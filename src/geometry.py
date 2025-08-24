@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections import Counter
 from dataclasses import dataclass
+from functools import reduce
 from itertools import islice, repeat, starmap
 from typing import Callable, Iterable, Iterator
 
@@ -67,6 +68,13 @@ class Rect:
 
     def to_polygon(self) -> Polygon:
         return Polygon([self.top_left, self.top_right, self.bottom_right, self.bottom_left, self.top_left])
+
+    def united(self, other: Rect) -> Rect:
+        left = min(self.left, other.left)
+        right = max(self.right, other.right)
+        top = min(self.top, other.top)
+        bottom = max(self.bottom, other.bottom)
+        return Rect(Point(left, top), Point(right, bottom))
 
 
 @dataclass(frozen=True)
@@ -290,7 +298,7 @@ def polygons_to_points(polygons: Iterable[Polygon]) -> Iterator[Point]:
     yield from dict.fromkeys(all_points)
 
 
-def bounding_rect(points: Iterable[Point]) -> Rect:
+def points_bounding_rect(points: Iterable[Point]) -> Rect:
     if not points:
         return Rect(Point(0, 0), Point(0, 0))
 
@@ -300,3 +308,10 @@ def bounding_rect(points: Iterable[Point]) -> Rect:
     max_y = max(point.y for point in points)
 
     return Rect(Point(min_x, min_y), Point(max_x, max_y))
+
+
+def polygons_bounding_rect(polygons: Iterable[Polygon]) -> Rect:
+    if not polygons:
+        return Rect(Point(0, 0), Point(0, 0))
+
+    return reduce(Rect.united, (polygon.bounding_rect for polygon in polygons))

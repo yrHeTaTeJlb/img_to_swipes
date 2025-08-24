@@ -1,17 +1,19 @@
 from __future__ import annotations
 
 import colorsys
+from itertools import cycle
 from logging import INFO, FileHandler
 from math import ceil
-from wakepy import keep
 from typing import Iterator
 
+from PIL.Image import new as pil_new
 from rich.highlighter import NullHighlighter
 from rich.logging import RichHandler
 from tqdm import tqdm
+from wakepy import keep
 
 from src import config
-from src.geometry import Point, Polygon, Rect
+from src.geometry import Point, Polygon, Rect, points_to_polygons, polygons_bounding_rect
 from src.image import Image
 from src.log import logger
 from src.swiper import Swiper
@@ -41,57 +43,77 @@ def load_image() -> Image:
         config.image_path(),
         config.canvas_rect().size.width,
         config.canvas_rect().size.height,
-        config.swipe_length(),
         config.max_luminosity(),
     )
-    logger.info(f"Loaded {len(image.pixels)} black pixels({len(image.strokes)} strokes) from {config.image_path}")
+    logger.info(f"Loaded {len(image.pixels)} black pixels from {config.image_path()}")
     return image
 
 
-def save_pixels(image: Image) -> None:
+def save_image(image: Image) -> None:
     black_pixels_path = config.artifacts_dir() / "pixels.bmp"
     image.to_pil_image().save(black_pixels_path)
     logger.info(f"Saved black pixels to {black_pixels_path}")
 
 
-def save_strokes(image: Image) -> None:
-    palette_size = 50
+def make_palette(size: int) -> Iterator[tuple[int, int, int]]:
     palette = []
-    hue_step = 1 / palette_size
-    for i in range(palette_size):
+    hue_step = 1 / size
+    for i in range(size):
         red, green, blue = colorsys.hsv_to_rgb(i * hue_step, 1, 1)
         palette.append((int(red * 255), int(green * 255), int(blue * 255)))
 
-    strokes_path = config.artifacts_dir() / "strokes.bmp"
-    image.to_pil_image(palette).save(strokes_path)
-    logger.info(f"Saved strokes to {strokes_path}")
+    return cycle(palette)
 
 
-def make_image_queue(image: Image) -> Iterator[Image]:
+def save_swipe_image(swipes: list[Polygon]) -> None:
+    palette = make_palette(50)
+
+    bounding_rect = polygons_bounding_rect(swipes)
+    pil_image = pil_new("RGB", (bounding_rect.size.width, bounding_rect.size.height), color="white")
+
+    for swipe in swipes:
+        image_swipe = swipe.offset(-bounding_rect.left, -bounding_rect.top)
+        color = next(palette)
+        for pixel in image_swipe.points:
+            pil_image.putpixel((pixel.x, pixel.y), color)
+
+    swipes_path = config.artifacts_dir() / "swipes.bmp"
+    pil_image.save(swipes_path)
+    logger.info(f"Saved swipes to {swipes_path}")
+
+
+def make_swipe_queue(image: Image) -> Iterator[Polygon]:
     rect_lerp_step_count = ceil(config.swipe_length() / 4)
 
     if config.draw_canvas_rect():
         canvas_size = config.canvas_rect().size
         canvas_rect = Rect(Point(0, 0), Point(canvas_size.width, canvas_size.height))
-        yield Image.from_strokes([canvas_rect.to_polygon().lerp(rect_lerp_step_count)])
+        yield canvas_rect.to_polygon().lerp(rect_lerp_step_count)
 
     if config.draw_image_rect():
         image_rect = Rect(Point(0, 0), Point(image.size.width, image.size.height))
-        yield Image.from_strokes([image_rect.to_polygon().lerp(rect_lerp_step_count)])
+        yield image_rect.to_polygon().lerp(rect_lerp_step_count)
 
     if config.draw_content_rect():
-        yield Image.from_strokes([image.content_bounding_rect.to_polygon().lerp(rect_lerp_step_count)])
+        yield image.content_bounding_rect.to_polygon().lerp(rect_lerp_step_count)
 
-    yield image
+    unique_pixels = set(image.pixels)
+    processed_pixels: set[Point] = set()
+    with tqdm(total=len(unique_pixels), smoothing=1, colour="green", desc="Preparing swipes") as pbar:
+        for polygon in points_to_polygons(unique_pixels, config.swipe_length()):
+            old_count = len(processed_pixels)
+            processed_pixels.update(polygon.points)
+            new_count = len(processed_pixels)
+            pbar.update(new_count - old_count)
+            yield polygon
 
 
-def draw_images(images: list[Image]) -> None:
+def perform_swipes(swipes: list[Polygon]) -> None:
     swiper = Swiper(config.swipe_duration())
-    strokes: list[Polygon] = [stroke for image in images for stroke in image.strokes]
     dx = config.canvas_rect().left
     dy = config.canvas_rect().top
-    for stroke in tqdm(strokes, smoothing=1, colour="green"):
-        swiper.swipe(stroke.offset(dx, dy))
+    for swipe in tqdm(swipes, smoothing=1, colour="green", desc="Performing swipes"):
+        swiper.swipe(swipe.offset(dx, dy))
 
 
 def configure_logging() -> None:
@@ -108,11 +130,12 @@ def main() -> None:
             log_config()
 
             image = load_image()
-            save_pixels(image)
-            save_strokes(image)
+            save_image(image)
 
-            images = list(make_image_queue(image))
-            draw_images(images)
+            swipes = list(make_swipe_queue(image))
+            save_swipe_image(swipes)
+
+            perform_swipes(swipes)
     except Exception as e:
         logger.exception(e)
         raise
