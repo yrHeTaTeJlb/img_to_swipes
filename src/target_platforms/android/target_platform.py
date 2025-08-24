@@ -81,7 +81,7 @@ class TargetPlatform(ITargetPlatform):
                 else:
                     logger.error(
                         "Exceeded maximum number of attempts to create Appium driver for Android. "
-                        f"Disconnect your device, enable USB debugging, execute '{self._adb} kill-server', "
+                        f"Disconnect your device, disable/enable USB debugging, execute '{self._adb} kill-server', "
                         "and then reconnect the device."
                     )
                     raise
