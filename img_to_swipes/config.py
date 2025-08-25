@@ -153,7 +153,7 @@ def canvas_rect() -> Rect:
 
 @lru_cache
 def swipe_length() -> int:
-    value = _config_key("swipe", "swipe_length", int, 200)
+    value = _config_key("swipe", "length", int, 200)
     if value <= 0:
         raise ValueError("Swipe length must be a positive integer")
 
@@ -162,8 +162,17 @@ def swipe_length() -> int:
 
 @lru_cache
 def swipe_duration() -> int:
-    value = _config_key("swipe", "swipe_duration", int, 1)
+    value = _config_key("swipe", "duration", int, 1)
     if value <= 0:
         raise ValueError("Swipe duration must be a positive integer")
+
+    return value
+
+
+@lru_cache
+def swipe_radius() -> int:
+    value = _config_key("swipe", "radius", int, 2)
+    if value <= 0:
+        raise ValueError("Swipe radius must be a positive integer")
 
     return value

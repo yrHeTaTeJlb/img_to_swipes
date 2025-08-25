@@ -20,11 +20,14 @@ height = 490
 [swipe]
 # Maximum number of pixels per swipe gesture segment.
 # Longer strokes are split into multiple swipes to avoid OS gesture limits.
-swipe_length = 200
+length = 200
 
 # Delay between consecutive swipe points, in milliseconds.
 # Lower values draw faster but may lead to missed touches.
-swipe_duration = 1
+duration = 1
+
+# Number of pixels(radius) around the swipe path that are treated as already painted
+radius = 2
 
 
 [debug]

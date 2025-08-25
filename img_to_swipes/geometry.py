@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import math
 from collections import Counter
 from dataclasses import dataclass
-from functools import reduce
+from functools import cache, reduce
 from itertools import islice, repeat, starmap
 from typing import Callable, Iterable, Iterator
 
@@ -67,7 +68,7 @@ class Rect:
         return Size(self.right - self.left + 1, self.bottom - self.top + 1)
 
     def to_polygon(self) -> Polygon:
-        return Polygon([self.top_left, self.top_right, self.bottom_right, self.bottom_left, self.top_left])
+        return Polygon((self.top_left, self.top_right, self.bottom_right, self.bottom_left, self.top_left))
 
     def united(self, other: Rect) -> Rect:
         left = min(self.left, other.left)
@@ -79,7 +80,7 @@ class Rect:
 
 @dataclass(frozen=True)
 class Polygon:
-    points: list[Point]
+    points: tuple[Point, ...]
 
     @property
     def bounding_rect(self) -> Rect:
@@ -94,7 +95,7 @@ class Polygon:
         return Rect(Point(min_x, min_y), Point(max_x, max_y))
 
     def offset(self, dx: int, dy: int) -> Polygon:
-        return Polygon([Point(point.x + dx, point.y + dy) for point in self.points])
+        return Polygon(tuple(Point(point.x + dx, point.y + dy) for point in self.points))
 
     def split(self, max_length: int) -> Iterator[Polygon]:
         if max_length <= 0:
@@ -108,7 +109,7 @@ class Polygon:
             raise ValueError("Steps must be non-negative")
 
         if len(self.points) <= 1 or steps == 0:
-            return Polygon(self.points.copy())
+            return Polygon(self.points)
 
         points_np = numpy.array([(point.x, point.y) for point in self.points])
         lerp_points_np: list[numpy.ndarray] = []
@@ -119,7 +120,7 @@ class Polygon:
             lerp_points_np.extend(lerp_segment_np)
 
         lerp_points = starmap(Point, numpy.round(lerp_points_np).astype(int).tolist())
-        return Polygon(list(dict.fromkeys(lerp_points)))
+        return Polygon(tuple(dict.fromkeys(lerp_points)))
 
 
 def find_contours(points: Iterable[Point]) -> Iterator[Polygon]:
@@ -140,7 +141,7 @@ def find_contours(points: Iterable[Point]) -> Iterator[Polygon]:
         if not contour_points:
             continue
 
-        yield Polygon(list(starmap(Point, contour_points)))
+        yield Polygon(tuple(starmap(Point, contour_points)))
 
 
 def find_path(start: Point, points: set[Point], max_length: int, predicate: Callable[[Point], bool]) -> Polygon | None:
@@ -149,7 +150,7 @@ def find_path(start: Point, points: set[Point], max_length: int, predicate: Call
 
     if max_length == 1:
         if predicate(start):
-            return Polygon([start])
+            return Polygon((start,))
         return None
 
     visited = set()
@@ -169,7 +170,7 @@ def find_path(start: Point, points: set[Point], max_length: int, predicate: Call
 
             if predicate(neighbor):
                 current_path.append(neighbor)
-                return Polygon(current_path)
+                return Polygon(tuple(current_path))
 
             if len(current_path) == max_length - 1:
                 continue
@@ -183,9 +184,10 @@ def find_path(start: Point, points: set[Point], max_length: int, predicate: Call
 
 
 class _PolygonGenerator:
-    def __init__(self, points: set[Point], polygon_length: int) -> None:
+    def __init__(self, points: set[Point], polygon_length: int, margin: int) -> None:
         self._points: set[Point] = points
         self._polygon_length: int = polygon_length
+        self._margin: int = margin
         self._unvisited_points: set[Point] = points.copy()
         self._unvisited_contours: list[Polygon] | None = []
 
@@ -212,7 +214,7 @@ class _PolygonGenerator:
             raise StopIteration
 
         polygon = self._next_contour() or self._next_random_polygon()
-        self._unvisited_points.difference_update(polygon.points)
+        self._unvisited_points.difference_update(polygon_halo(polygon, self._margin))
 
         return polygon
 
@@ -236,8 +238,8 @@ class _PolygonGenerator:
             head = find_path(first_point, self._points, max_length, is_unvisited)
             if head:
                 visit_count.update(islice(head.points, 1, None))
-                head.points.reverse()
-                points, tail_points = head.points, points
+                head_points = list(reversed(head.points))
+                points, tail_points = head_points, points
                 points.extend(islice(tail_points, 1, None))
                 continue
 
@@ -264,7 +266,7 @@ class _PolygonGenerator:
         pad = self._polygon_length - len(points)
         points.extend(islice(repeat(last_point), pad))
 
-        return Polygon(points)
+        return Polygon(tuple(points))
 
     def _find_least_visited_neighbor(
         self, point: Point, visit_count: Counter[Point], all_points: set[Point]
@@ -286,16 +288,13 @@ class _PolygonGenerator:
         return least_visited_neighbor
 
 
-def points_to_polygons(points: set[Point], polygon_length: int) -> Iterator[Polygon]:
-    yield from _PolygonGenerator(points, polygon_length)
+def points_to_polygons(points: set[Point], polygon_length: int, margin: int) -> Iterator[Polygon]:
+    yield from _PolygonGenerator(points, polygon_length, margin)
 
 
-def polygons_to_points(polygons: Iterable[Polygon]) -> Iterator[Point]:
-    all_points = []
+def polygons_to_points(polygons: Iterable[Polygon], margin: int) -> Iterator[Point]:
     for polygon in polygons:
-        all_points.extend(polygon.points)
-
-    yield from dict.fromkeys(all_points)
+        yield from polygon_halo(polygon, margin)
 
 
 def points_bounding_rect(points: Iterable[Point]) -> Rect:
@@ -315,3 +314,29 @@ def polygons_bounding_rect(polygons: Iterable[Polygon]) -> Rect:
         return Rect(Point(0, 0), Point(0, 0))
 
     return reduce(Rect.united, (polygon.bounding_rect for polygon in polygons))
+
+
+@cache
+def polygon_halo(polygon: Polygon, margin: int) -> set[Point]:
+    if margin < 0:
+        raise ValueError("Margin must be non-negative")
+
+    if margin == 0:
+        return set(polygon.points)
+
+    queue = [(point, point) for point in polygon.points]
+
+    visited_points: set[Point] = set()
+    while queue:
+        polygon_point, halo_point = queue.pop(0)
+        visited_points.add(halo_point)
+        for neighbor in halo_point.neighbors:
+            if neighbor in visited_points:
+                continue
+
+            if math.dist((polygon_point.x, polygon_point.y), (neighbor.x, neighbor.y)) > margin:
+                continue
+
+            queue.append((polygon_point, neighbor))
+
+    return visited_points

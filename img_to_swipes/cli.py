@@ -13,7 +13,7 @@ from tqdm import tqdm
 from wakepy import keep
 
 from img_to_swipes import config
-from img_to_swipes.geometry import Point, Polygon, Rect, points_to_polygons, polygons_bounding_rect
+from img_to_swipes.geometry import Point, Polygon, Rect, points_to_polygons, polygon_halo, polygons_bounding_rect
 from img_to_swipes.image import Image
 from img_to_swipes.log import logger
 from img_to_swipes.swiper import Swiper
@@ -82,6 +82,24 @@ def save_swipe_image(swipes: list[Polygon]) -> None:
     logger.info(f"Saved swipes to {swipes_path}")
 
 
+def save_swipe_with_margin_image(swipes: list[Polygon]) -> None:
+    palette = make_palette(50)
+
+    bounding_rect = polygons_bounding_rect(swipes)
+    pil_image = pil_new("RGB", (bounding_rect.size.width, bounding_rect.size.height), color="white")
+
+    for swipe in swipes:
+        image_swipe = swipe.offset(-bounding_rect.left, -bounding_rect.top)
+        color = next(palette)
+        for pixel in polygon_halo(image_swipe, config.swipe_radius()):
+            if pixel.x >= 0 and pixel.y >= 0 and pixel.x < pil_image.width and pixel.y < pil_image.height:
+                pil_image.putpixel((pixel.x, pixel.y), color)
+
+    swipes_path = config.artifacts_dir() / "swipes_with_margin.bmp"
+    pil_image.save(swipes_path)
+    logger.info(f"Saved swipes with margin to {swipes_path}")
+
+
 def make_swipe_queue(image: Image) -> Iterator[Polygon]:
     rect_lerp_step_count = ceil(config.swipe_length() / 4)
 
@@ -98,13 +116,13 @@ def make_swipe_queue(image: Image) -> Iterator[Polygon]:
         yield image.content_bounding_rect.to_polygon().lerp(rect_lerp_step_count)
 
     unique_pixels = set(image.pixels)
-    processed_pixels: set[Point] = set()
+    unprocessed_pixels: set[Point] = unique_pixels.copy()
     with tqdm(total=len(unique_pixels), smoothing=1, colour="green", desc="Preparing swipes") as pbar:
-        for polygon in points_to_polygons(unique_pixels, config.swipe_length()):
-            old_count = len(processed_pixels)
-            processed_pixels.update(polygon.points)
-            new_count = len(processed_pixels)
-            pbar.update(new_count - old_count)
+        for polygon in points_to_polygons(unique_pixels, config.swipe_length(), config.swipe_radius()):
+            old_count = len(unprocessed_pixels)
+            unprocessed_pixels.difference_update(polygon_halo(polygon, config.swipe_radius()))
+            new_count = len(unprocessed_pixels)
+            pbar.update(old_count - new_count)
             yield polygon
 
 
@@ -134,6 +152,7 @@ def main() -> None:
 
             swipes = list(make_swipe_queue(image))
             save_swipe_image(swipes)
+            save_swipe_with_margin_image(swipes)
 
             perform_swipes(swipes)
     except Exception as e:
