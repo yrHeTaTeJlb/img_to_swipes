@@ -12,7 +12,7 @@ import pymupdf
 from reportlab.graphics import renderPDF
 from svglib import svglib
 
-from src.geometry import Point, Rect, Size, points_bounding_rect
+from img_to_swipes.geometry import Point, Rect, Size, points_bounding_rect
 
 
 class Image:

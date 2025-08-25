@@ -7,9 +7,9 @@ from typing import Any, TypeVar
 
 import toml
 from nodejs import node
-from src.geometry import Point, Rect
+from img_to_swipes.geometry import Point, Rect
 
-from src.target_platforms.target_platform import ITargetPlatform
+from img_to_swipes.target_platforms.target_platform import ITargetPlatform
 
 
 class HostPlatform(Enum):
@@ -86,7 +86,7 @@ def nodejs_path() -> Path:
 @lru_cache
 def target_platform() -> ITargetPlatform:
     platform_name = _config_key("target_platform", "name", str, None)
-    platform_module = importlib.import_module(f"src.target_platforms.{platform_name}.target_platform")
+    platform_module = importlib.import_module(f"img_to_swipes.target_platforms.{platform_name}.target_platform")
     platform = platform_module.TargetPlatform()
     assert isinstance(platform, ITargetPlatform)
 

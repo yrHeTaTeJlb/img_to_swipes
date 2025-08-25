@@ -6,8 +6,8 @@ from selenium.webdriver.common.actions import interaction
 from selenium.webdriver.common.actions.action_builder import ActionBuilder
 from selenium.webdriver.common.actions.pointer_input import PointerInput
 
-from src import config
-from src.geometry import Polygon
+from img_to_swipes import config
+from img_to_swipes.geometry import Polygon
 
 
 @lru_cache

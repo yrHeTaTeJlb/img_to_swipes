@@ -12,11 +12,11 @@ from rich.logging import RichHandler
 from tqdm import tqdm
 from wakepy import keep
 
-from src import config
-from src.geometry import Point, Polygon, Rect, points_to_polygons, polygons_bounding_rect
-from src.image import Image
-from src.log import logger
-from src.swiper import Swiper
+from img_to_swipes import config
+from img_to_swipes.geometry import Point, Polygon, Rect, points_to_polygons, polygons_bounding_rect
+from img_to_swipes.image import Image
+from img_to_swipes.log import logger
+from img_to_swipes.swiper import Swiper
 
 
 def log_config() -> None:

@@ -9,10 +9,10 @@ from appium.options.android import UiAutomator2Options
 from appium.webdriver.appium_service import MAIN_SCRIPT_PATH, AppiumService
 from selenium.common.exceptions import WebDriverException
 
-from src import config
-from src.log import logger
-from src.nodejs_utils import install_appium, install_uiautomator, modules_root
-from src.target_platforms.target_platform import ITargetPlatform
+from img_to_swipes import config
+from img_to_swipes.log import logger
+from img_to_swipes.nodejs_utils import install_appium, install_uiautomator, modules_root
+from img_to_swipes.target_platforms.target_platform import ITargetPlatform
 
 
 class TargetPlatform(ITargetPlatform):

@@ -8,8 +8,8 @@ from pathlib import Path
 
 from nodejs import npm
 
-from src import config
-from src.log import logger
+from img_to_swipes import config
+from img_to_swipes.log import logger
 
 
 @dataclass(frozen=True)
