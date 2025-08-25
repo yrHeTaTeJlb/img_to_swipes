@@ -69,12 +69,14 @@ class Image:
     @staticmethod
     def _from_any_file(path: Path, max_width: int, max_height: int, max_luminosity: int) -> Image:
         with pil_open(path) as pil_image:
-            if pil_image.width != max_width and pil_image.height != max_height:
-                scale_factor = min(max_width / pil_image.width, max_height / pil_image.height)
-                new_size = (int(pil_image.width * scale_factor), int(pil_image.height * scale_factor))
-                pil_image.resize(new_size, resample=PilResampling.LANCZOS)
+            if pil_image.width == max_width or pil_image.height == max_height:
+                return Image.from_pil_image(pil_image, max_luminosity)
 
-            return Image.from_pil_image(pil_image, max_luminosity)
+            scale_factor = min(max_width / pil_image.width, max_height / pil_image.height)
+            new_size = (int(pil_image.width * scale_factor), int(pil_image.height * scale_factor))
+            pil_image_resized = pil_image.resize(new_size, resample=PilResampling.LANCZOS)
+
+            return Image.from_pil_image(pil_image_resized, max_luminosity)
 
     @staticmethod
     def _from_svg_file(path: Path, max_width: int, max_height: int, max_luminosity: int) -> Image:
